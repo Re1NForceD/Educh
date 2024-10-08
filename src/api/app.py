@@ -4,7 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 from waitress import serve
 
-from api.routes.health import ep_health
+from api.routes.generic import ep_base
 from api.logs import log_request_info, list_registered_blueprints
 
 logger = logging.getLogger()
@@ -13,7 +13,6 @@ logger = logging.getLogger()
 class FlaskApp:
   def __init__(self, config):
     self.app = Flask(__name__, instance_relative_config=True)
-    self.app.before_request(log_request_info)
 
     self._configure_app(config)
     self._setup_cors()
@@ -66,7 +65,8 @@ class FlaskApp:
       pass
 
   def _register_blueprints(self):
-    self.app.register_blueprint(ep_health)
+    self.app.before_request(log_request_info)
+    self.app.register_blueprint(ep_base)
 
     list_registered_blueprints(self.app)
 
