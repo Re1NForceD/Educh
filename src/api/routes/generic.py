@@ -9,30 +9,31 @@ ep_base = Blueprint("base", __name__)
 ep_base.register_blueprint(ep_app)
 
 def handle_http_exception(e):
-    """Return JSON instead of HTML for HTTP errors."""
-    # start with the correct headers and status code from the error
     response = e.get_response()
-    # replace the body with JSON
+    response.content_type = "application/json"
     response.data = json.dumps({
         "code": e.code,
         "name": e.name,
         "description": e.description,
     })
-    response.content_type = "application/json"
     return response
+
+def handle_other_exception(e):
+    return e # TODO: remove after testing
+    response = json.dumps({
+        "description": (e.args if current_app.config["CONFIGURATION"] == "debug" else "internal error"),
+    })
+    return response, 500
 
 @ep_base.errorhandler(Exception)
 def handle_exception(e):
-  logger.info("handle_exception")
   if isinstance(e, HTTPException):
-      return handle_http_exception(e)
+    return handle_http_exception(e)
 
-  if current_app.config["CONFIGURATION"] == "debug":
-    return {"error": e}, 500
-  else:
-    return {"error": "internal error"}, 500
+  return handle_other_exception(e)
 
 
 @ep_base.route("/health", methods=["GET"])
 def health():
-  return jsonify({"status": "healthy"})
+  raise Exception("shish")
+  return ""
