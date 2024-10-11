@@ -4,8 +4,8 @@ from flask import Flask
 from flask_cors import CORS
 from waitress import serve
 
-from api.routes.generic import ep_base
-from api.logs import log_request_info, list_registered_blueprints
+from server_api.routes.generic import ep_base
+from server_api.logs import log_request_info, list_registered_blueprints
 
 logger = logging.getLogger()
 

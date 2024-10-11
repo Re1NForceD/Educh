@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, current_app, json
 from werkzeug.exceptions import HTTPException
 import logging
-from api.routes.apps_management import ep_app
+from server_api.routes.apps_management import ep_app
 
 logger = logging.getLogger()
 

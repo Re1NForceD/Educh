@@ -1,12 +1,10 @@
 import logging
-import api
-import logic
-import storage
+import server_api
+import server_logic
+import server_storage
 
 
 if __name__ == "__main__":
-  logger = logging.getLogger()
-
   # TODO: form config from env
   storage_config = {
       "db_host": "localhost",
@@ -18,9 +16,9 @@ if __name__ == "__main__":
   api_config = {"TEST": 666}
   logic_config = {"TEST": 666}
 
-  storage_module = storage.MySQLStorage(storage_config)
-  comm_module = api.app.FlaskApp(api_config)
-  logic_module = logic.Logic(logic_config, storage_module, comm_module)
+  storage_module = server_storage.MySQLStorage(storage_config)
+  comm_module = server_api.app.FlaskApp(api_config)
+  logic_module = server_logic.Logic(logic_config, storage_module, comm_module)
 
   comm_module.set_logic(logic_module)
   comm_module.start()

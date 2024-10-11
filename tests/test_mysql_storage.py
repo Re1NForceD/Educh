@@ -1,5 +1,5 @@
 import unittest
-from storage.mysql_storage import MySQLStorage
+from server_storage.mysql_storage import MySQLStorage
 
 class MySQLTests(unittest.TestCase):
     def setUp(self):

@@ -1,6 +1,3 @@
-from app import app
-
-@app.event("app_home_opened")
 def update_home_tab(client, event, logger):
   try:
     # views.publish is the method that your app uses to push a view to the Home tab
@@ -52,11 +49,15 @@ def update_home_tab(client, event, logger):
     logger.error(f"Error publishing home tab: {e}")
 
 
-@app.action("button_click")
-def handle_some_action(ack, body, logger):
+def handle_button_click(ack, client, body, logger):
   ack()
   logger.info(body)
-  app.client.chat_postMessage(
+  client.chat_postMessage(
       channel=body["user"]["id"],
       text=f"<@{body['user']['id']}> clicked the button"
   )
+
+
+def register_app_events(app):
+  app.event("app_home_opened")(update_home_tab)
+  app.action("button_click")(handle_button_click)
