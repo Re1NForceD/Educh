@@ -1,4 +1,5 @@
-def update_home_tab(client, event, logger):
+def update_home_tab(context, client, event, logger):
+  logic = context['logic']
   try:
     # views.publish is the method that your app uses to push a view to the Home tab
     client.views_publish(
@@ -49,15 +50,24 @@ def update_home_tab(client, event, logger):
     logger.error(f"Error publishing home tab: {e}")
 
 
-def handle_button_click(ack, client, body, logger):
+def handle_button_click(context, ack, client, body, logger):
+  logic = context['logic']
   ack()
-  logger.info(body)
   client.chat_postMessage(
       channel=body["user"]["id"],
       text=f"<@{body['user']['id']}> clicked the button"
   )
 
 
-def register_app_events(app):
+def add_custom_data(app, logic):
+  def middleware(context, next):
+    context["logic"] = logic
+    next()
+
+  return middleware
+
+
+def register_app_events(app, logic):
+  app.use(add_custom_data(app, logic))
   app.event("app_home_opened")(update_home_tab)
   app.action("button_click")(handle_button_click)

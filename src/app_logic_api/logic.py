@@ -1,5 +1,6 @@
 import requests
 import logging
+from course_classes import *
 
 logger = logging.getLogger()
 
@@ -12,6 +13,7 @@ class AppLogic:
         self.server_address = config["SERVER_ADDRESS"]
         self.auth_key = config["AUTH_KEY"]
         self.session_key = ""
+        self.course = None
 
     def get_url(self, path):
         return f"{self.server_address}/{path}"
@@ -27,11 +29,10 @@ class AppLogic:
         
         r_data = r.json()
 
-        self.course_id = r_data["id"]
-        self.course_name = r_data["name"]
         self.session_key = r_data["session_key"]
+        self.course = Course(data=r_data["course_data"])
 
-        logger.info(f"App verified under {self.course_id} - {self.course_name}")
+        logger.info(f"App verified. Course: {self.course}")
 
         self.send_req(func=requests.get, path=ep_app_test)
 

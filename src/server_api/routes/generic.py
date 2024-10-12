@@ -20,7 +20,7 @@ def handle_http_exception(e):
 
 def handle_other_exception(e):
     return e # TODO: remove after testing
-    response = json.dumps({
+    response = jsonify({
         "description": (e.args if current_app.config["CONFIGURATION"] == "debug" else "internal error"),
     })
     return response, 500

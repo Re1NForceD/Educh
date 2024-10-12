@@ -37,7 +37,9 @@ def verify():
   k_c_apps[session_key] = course_id # session key = course_id
   c_k_apps[course_id] = session_key # course_id = session key
 
-  return jsonify({"id": course_id, "name": course_name, "session_key": session_key}), 200
+  course = logic.get_course_data(course_id)
+
+  return jsonify({"course_data": course.to_dict(), "session_key": session_key}), 200
 
 
 @ep_app_verified.before_request
@@ -46,7 +48,7 @@ def check_auth():
   try:
     session_key = uuid.UUID(request.headers.get("Session-Key", ""))
     if session_key not in k_c_apps:
-      raise Exception("unknown session key")
+      raise BadRequest("unknown session key")
   except Exception as e:
     logger.error(f"got exception: {e}")
     raise Unauthorized("unknown app")

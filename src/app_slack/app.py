@@ -22,7 +22,7 @@ class SlackApp:
     self.config = config
 
   def _register_event_handlers(self):
-    register_app_events(self.app)
+    register_app_events(self.app, self.logic)
 
   def start(self):
     self.logic.start()

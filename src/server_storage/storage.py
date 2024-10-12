@@ -1,4 +1,5 @@
 import logging
+from course_classes import *
 
 logger = logging.getLogger(__name__)
 
@@ -17,4 +18,7 @@ class DataStorage():
 
   """returns session key to use API and websocket"""
   def verify_app(self, course_id: int, key: str) -> str:
+    pass
+  
+  def get_course_data(self, course_id: int) -> Course:
     pass

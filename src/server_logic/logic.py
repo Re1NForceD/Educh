@@ -17,3 +17,6 @@ class Logic:
 
   def verify_app(self, course_id: int, hash: str) -> str:
     return self._storage.verify_app(course_id, hash)
+
+  def get_course_data(self, course_id: int):
+    return self._storage.get_course_data(course_id)

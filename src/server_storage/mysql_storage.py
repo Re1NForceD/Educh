@@ -4,7 +4,7 @@ import logging
 import mysql.connector
 from mysql.connector import Error
 
-from .storage import DataStorage
+from .storage import *
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +73,26 @@ class MySQLStorage(DataStorage):
       return ""
 
     return rows[0][1]
+  
+  def get_event(self, db_row):
+    return get_event(*db_row)
+  
+  def get_course_data(self, course_id: int) -> Course:
+    cnx = self.get_cnx()
+    
+    general_info = self.exec_select(
+        cnx, f"select id, name, start_date from course where id = {course_id}")
+    
+    if len(general_info) != 1:
+      raise RuntimeError(f"invalid course info in db for: {course_id}")
+    
+    course = Course(id=general_info[0][0], name=general_info[0][1], start_date=general_info[0][2])
+    
+    events = self.exec_select(
+        cnx, f"select id, event_type_id, offset_h from course_event where course_id = {course_id}")
+    if len(events):
+      for event_data in events:
+        course.add_event(self.get_event(event_data))
+
+    return course
+
