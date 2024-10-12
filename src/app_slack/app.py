@@ -6,8 +6,9 @@ from .events import register_app_events
 slack_app = None
 
 class SlackApp:
-  def __init__(self, config):
+  def __init__(self, config, logic):
     self._configure_app(config)
+    self.logic = logic
     
     self.app = App(
         token=self.config["SLACK_BOT_TOKEN"]
@@ -24,8 +25,10 @@ class SlackApp:
     register_app_events(self.app)
 
   def start(self):
+    self.logic.start()
+
     SocketModeHandler(self.app, self.config["SLACK_APP_TOKEN"]).start()
 
-def init_slack_app(config):
-  slack_app = SlackApp(config)
+def init_slack_app(config, app_logic):
+  slack_app = SlackApp(config, app_logic)
   return slack_app

@@ -11,7 +11,7 @@ c_k_apps = dict() # course_id = session key
 
 
 ep_app = Blueprint("app", __name__)
-ep_app_verified = Blueprint("app", __name__, url_prefix="/app")
+ep_app_verified = Blueprint("app_verified", __name__, url_prefix="/app")
 ep_app.register_blueprint(ep_app_verified)
 
 
@@ -33,20 +33,20 @@ def verify():
 
   logger.info(f"app for course {course_id_str} is verified")
 
-  app_key = uuid.uuid4()
-  k_c_apps[app_key] = course_id # session key = course_id
-  c_k_apps[course_id] = app_key # course_id = session key
+  session_key = uuid.uuid4()
+  k_c_apps[session_key] = course_id # session key = course_id
+  c_k_apps[course_id] = session_key # course_id = session key
 
-  return jsonify({"id": course_id, "name": course_name, "key": app_key}), 200
+  return jsonify({"id": course_id, "name": course_name, "session_key": session_key}), 200
 
 
 @ep_app_verified.before_request
 def check_auth():
   logger.info(f"k_c_apps: {k_c_apps}, c_k_apps: {c_k_apps}")
   try:
-    app_key = uuid.UUID(request.headers.get("App-Key", ""))
-    if app_key not in k_c_apps:
-      raise Exception("unknown key")
+    session_key = uuid.UUID(request.headers.get("Session-Key", ""))
+    if session_key not in k_c_apps:
+      raise Exception("unknown session key")
   except Exception as e:
     logger.error(f"got exception: {e}")
     raise Unauthorized("unknown app")

@@ -35,5 +35,5 @@ def handle_exception(e):
 
 @ep_base.route("/health", methods=["GET"])
 def health():
-  raise Exception("shish")
-  return ""
+  # raise Exception("shish")
+  return "", 200
