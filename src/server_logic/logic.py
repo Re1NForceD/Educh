@@ -1,6 +1,8 @@
 import os
 import logging
 
+from course_classes import *
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,3 +22,6 @@ class Logic:
 
   def get_course_data(self, course_id: int):
     return self._storage.get_course_data(course_id)
+
+  def update_users(self, course_id: int, users: list[User]) -> None:
+    self._storage.update_users(course_id, users)

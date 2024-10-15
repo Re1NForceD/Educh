@@ -1,8 +1,10 @@
-from flask import Blueprint, jsonify, current_app, request
+from flask import Blueprint, jsonify, current_app, request, g
 import logging
 import base64
 import uuid
-from werkzeug.exceptions import BadRequest, Unauthorized
+from werkzeug.exceptions import BadRequest, Unauthorized, Locked
+
+from course_classes import *
 
 logger = logging.getLogger()
 
@@ -44,17 +46,36 @@ def verify():
 
 @ep_app_verified.before_request
 def check_auth():
-  logger.info(f"k_c_apps: {k_c_apps}, c_k_apps: {c_k_apps}")
   try:
     session_key = uuid.UUID(request.headers.get("Session-Key", ""))
     if session_key not in k_c_apps:
       raise BadRequest("unknown session key")
+    g.course_id = k_c_apps[session_key]
   except Exception as e:
     logger.error(f"got exception: {e}")
     raise Unauthorized("unknown app")
-  
 
-@ep_app_verified.route("/test", methods=["GET"])
-def app_test():
-  logger.info("app_test ep")
-  return "", 204
+
+@ep_app_verified.route("/launch_update_users", methods=["POST"])
+def app_launch_update_users():
+  logic = current_app.config['logic']
+  course = logic.get_course_data(g.course_id)
+  if len(course.teachers) != 0:
+    raise Locked("course is ready")
+  
+  if "users" not in request.json:
+    raise BadRequest("not found field: users")
+  
+  users_list = request.json["users"]
+
+  if len(users_list) == 0:
+    raise BadRequest("empty field: users")
+  
+  users = []
+  for user_data in users_list:
+    users.append(User(data=user_data))
+
+  logic.update_users(g.course_id, users)
+
+  course = logic.get_course_data(g.course_id)
+  return {"course_data": course.to_dict()}, 200

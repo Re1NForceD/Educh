@@ -93,6 +93,18 @@ class MySQLStorage(DataStorage):
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
+    
+    users = self.exec_select(
+        cnx, f"select cu.platform_id, cu.name, cu.role_id from course_user cu where cu.course_id = {course_id}")
+    if len(users):
+      for user_data in users:
+        course.add_user(User(*user_data))
 
     return course
+  
+  def update_users(self, course_id: int, users: list[User]) -> None:
+    cnx = self.get_cnx()
+    for user in users:
+      self.exec_insert(cnx, f"insert into course_user (course_id, platform_id, name, role_id) values({course_id}, '{user.platform_id}', '{user.name}', {user.role})")
+    cnx.commit()
 

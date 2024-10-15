@@ -22,3 +22,6 @@ class DataStorage():
   
   def get_course_data(self, course_id: int) -> Course:
     pass
+
+  def update_users(self, course_id: int, users: list[User]) -> None:
+    pass
