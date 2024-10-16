@@ -12,6 +12,15 @@ class User:
       self.name = name
       self.role = role
 
+  def is_learner(self):
+    return self.role in [U_LEARNER]
+
+  def is_teacher(self):
+    return self.role in [U_TEACHER, U_MASTER]
+
+  def is_guest(self):
+    return self.role in [U_GUEST]
+
   def to_dict(self) -> dict:
     data = {
       "platform_id": self.platform_id,

@@ -15,8 +15,7 @@ class Course:
       self.name = name
       self.start_date = start_date
       self.events: list[Event] = []
-      self.learners: list[User] = []
-      self.teachers: list[User] = []
+      self.users: dict[str, User] = {}
 
   def set_start_date(self, start_date):
     self.start_date = start_date
@@ -24,34 +23,25 @@ class Course:
   def add_event(self, event: Event):
     self.events.append(event)
 
+  def is_teacher_user(self, user_id: str):
+    return self.users[user_id].is_teacher()
+
   def is_user_exists(self, user: User):
-    for learner in self.learners:
-      if learner.platform_id == user.platform_id:
-        return True
-    
-    for teacher in self.teachers:
-      if teacher.platform_id == user.platform_id:
-        return True
-    
-    return False
+    return user.platform_id in self.users
 
   def add_user(self, user: User):
     if self.is_user_exists(user):
       return
     
-    if user.role == U_LEARNER:
-      self.learners.append(user)
-    elif user.role in [U_TEACHER, U_MASTER]:
-      self.teachers.append(user)
+    self.users[user.platform_id] = user
 
   def to_dict(self) -> dict:
     data = {
       "id": self.id,
       "name": self.name,
-      "start_date": self.start_date.strftime("%d/%m/%Y"),
+      "start_date": None if self.start_date is None else self.start_date.strftime("%d/%m/%Y"),
       "events": [],
-      "learners": [],
-      "teachers": [],
+      "users": [],
     }
 
     if len(self.events):
@@ -60,33 +50,26 @@ class Course:
         events.append(event.to_dict())
       data["events"] = events
 
-    if len(self.learners):
-      learners = []
-      for learner in self.learners:
-        learners.append(learner.to_dict())
-      data["learners"] = learners
-
-    if len(self.teachers):
-      teachers = []
-      for teacher in self.teachers:
-        teachers.append(teacher.to_dict())
-      data["teachers"] = teachers
+    if len(self.users):
+      users = []
+      for user in self.users.values():
+        users.append(user.to_dict())
+      data["users"] = users
 
     return data
   
   def from_dict(self, data: dict):
     self.id = data["id"]
     self.name = data["name"]
-    self.start_date = datetime.datetime.strptime(data["start_date"],"%d/%m/%Y").date()
+
+    data_start_date = data["start_date"]
+    self.start_date = None if data_start_date is None else datetime.datetime.strptime(data_start_date,"%d/%m/%Y").date()
+
     self.events: list[Event] = []
-    self.learners: list[User] = []
-    self.teachers: list[User] = []
+    self.users: dict[str, User] = {}
 
     for event_data in data["events"]:
       self.events.append(get_event_from_dict(event_data))
     
-    for learner_data in data["learners"]:
-      self.add_user(User(data=learner_data))
-    
-    for teacher_data in data["teachers"]:
-      self.add_user(User(data=teacher_data))
+    for user_data in data["users"]:
+      self.add_user(User(data=user_data))

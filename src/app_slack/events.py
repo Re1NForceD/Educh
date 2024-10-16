@@ -1,5 +1,11 @@
 def update_home_tab(context, client, event, logger):
   logic = context['logic']
+  user_id=event["user"]
+  is_teacher = logic.is_teacher_user(user_id)
+  if is_teacher:
+    pass
+  else:
+    pass
   try:
     # views.publish is the method that your app uses to push a view to the Home tab
     client.views_publish(
@@ -16,7 +22,7 @@ def update_home_tab(context, client, event, logger):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Welcome to your _App's Home tab_* :tada:"
+                        "text": f"*Welcome to your _App's Home tab_* :tada: {'teacher' if is_teacher else 'user'}!"
                     }
                 },
                 {

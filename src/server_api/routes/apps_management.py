@@ -60,7 +60,7 @@ def check_auth():
 def app_launch_update_users():
   logic = current_app.config['logic']
   course = logic.get_course_data(g.course_id)
-  if len(course.teachers) != 0:
+  if len(course.users) != 0:
     raise Locked("course is ready")
   
   if "users" not in request.json:

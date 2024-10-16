@@ -32,7 +32,7 @@ class AppLogic:
     self.session_key = r_data["session_key"]
     self.course = Course(data=r_data["course_data"])
 
-    logger.info(f"App verified. Course: {self.course}")
+    logger.info(f"App verified. Course: {r_data['course_data']}")
 
     return True
 
@@ -45,26 +45,24 @@ class AppLogic:
     
     return True
 
-  def is_first_start(self):
-    return len(self.course.teachers) == 0
+  def is_first_launch(self):
+    return len(self.course.users) == 0
 
   def is_need_setup(self):
-    return len(self.course.events) == 0
+    return len(self.course.events) == 0 or len(self.course.users) == 0
+
+  def is_teacher_user(self, user_id: str):
+    return self.course.is_teacher_user(user_id)
   
   def launch_update_users(self):
     users_data = []
-    if len(self.course.learners):
-      for learner in self.course.learners:
-        users_data.append(learner.to_dict())
-
-    if len(self.course.teachers):
-      for teacher in self.course.teachers:
-        users_data.append(teacher.to_dict())
+    if len(self.course.users):
+      for user in self.course.users.values():
+        users_data.append(user.to_dict())
 
     r = self.send_req(func=requests.post, path=ep_launch_update_users, json={"users": users_data})
     if not r.ok:
       raise RuntimeError("can't launch_update_users")
     
     r_data=r.json()
-    logger.info(f"got r_data {r_data}")
     self.course = Course(data=r_data["course_data"])
