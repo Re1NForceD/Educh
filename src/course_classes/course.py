@@ -7,13 +7,13 @@ logger = logging.getLogger()
 
 
 class Course:
-  def __init__(self, id=None, name=None, start_date=None, data=None):
+  def __init__(self, id: int =None, name: str =None, start_date: datetime.datetime =None, data: dict =None):
     if data is not None:
       self.from_dict(data)
     else:
       self.id = id
       self.name = name
-      self.start_date = start_date
+      self.start_date: datetime.datetime = start_date
       self.events: list[Event] = []
       self.users: dict[str, User] = {}
 
@@ -39,7 +39,7 @@ class Course:
     data = {
       "id": self.id,
       "name": self.name,
-      "start_date": None if self.start_date is None else self.start_date.strftime("%d/%m/%Y"),
+      "start_date": None if self.start_date is None else self.start_date.strftime("%Y-%m-%d %H:%M:%S"),
       "events": [],
       "users": [],
     }
@@ -63,7 +63,7 @@ class Course:
     self.name = data["name"]
 
     data_start_date = data["start_date"]
-    self.start_date = None if data_start_date is None else datetime.datetime.strptime(data_start_date,"%d/%m/%Y").date()
+    self.start_date = None if data_start_date is None else datetime.datetime.strptime(data_start_date,"%Y-%m-%d %H:%M:%S")
 
     self.events: list[Event] = []
     self.users: dict[str, User] = {}

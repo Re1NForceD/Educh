@@ -89,7 +89,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], start_date=general_info[0][2])
     
     events = self.exec_select(
-        cnx, f"select id, event_type_id, offset_h from course_event where course_id = {course_id}")
+        cnx, f"select id, event_type_id, start_time, duration_m from course_event where course_id = {course_id}")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))

@@ -48,7 +48,7 @@ class AppLogic:
   def is_first_launch(self):
     return len(self.course.users) == 0
 
-  def is_need_setup(self):
+  def is_need_setup_events(self):
     return len(self.course.events) == 0 or len(self.course.users) == 0
 
   def is_teacher_user(self, user_id: str):
