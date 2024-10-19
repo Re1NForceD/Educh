@@ -73,10 +73,22 @@ def app_update_users():
   users = []
   for user_data in users_list:
     user = User(data=user_data)
-    if not course.is_user_id_exists(user.platform_id):
+    if not course.is_user_id_exists(user.platform_id): # TODO update existed users
       users.append(user)
 
   logic.update_users(g.course_id, users)
 
   course = logic.get_course_data(g.course_id)
   return {"course_data": course.to_dict()}, 200
+
+
+@ep_app_verified.route("/update_essensials", methods=["PUT"])
+def app_update_essensials():
+  logic: Logic = current_app.config['logic']
+  
+  if "channel_id" not in request.json and "start_date" not in request.json:
+    raise BadRequest("no needed fields to update")
+
+  logic.update_essensials(g.course_id, request.json["channel_id"], datetime_from_str(request.json["start_date"]))
+
+  return {}, 200

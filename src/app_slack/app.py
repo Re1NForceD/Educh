@@ -29,8 +29,14 @@ class SlackApp:
 
   def start(self):
     self.logic.start()
+    
+    if self.logic.course.channel_id is None:
+      created_channel = self.app.client.conversations_create(name=f"{self.logic.course.name}_Educh_Channel".lower(),
+                                                             is_private=False)
+      channel_id = created_channel["channel"]["id"]
+      self.app.client.conversations_setPurpose(channel=channel_id, purpose="Channel created by Educh App for learning!")
+      self.logic.update_essensials(channel_id=channel_id)
 
-    # if self.logic.is_first_launch():
     users_list = self.app.client.users_list()
     new_users: list[User] = []
     for user_info in users_list["members"]:
@@ -41,6 +47,7 @@ class SlackApp:
         new_users.append(user)
 
     if len(new_users) > 0:
+      self.app.client.conversations_invite(channel=self.logic.course.channel_id, users=[user.platform_id for user in new_users], force=True)
       self.logic.update_users()
       for user in new_users:
         self.update_home_page(user)

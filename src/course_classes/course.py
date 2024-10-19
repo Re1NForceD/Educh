@@ -2,22 +2,27 @@ import logging
 import datetime
 from .event import *
 from .user import *
+from .tools import *
 
 logger = logging.getLogger()
 
 
 class Course:
-  def __init__(self, id: int =None, name: str =None, start_date: datetime.datetime =None, data: dict =None):
+  def __init__(self, id: int =None, name: str =None, channel_id: str =None, start_date: datetime.datetime =None, data: dict =None):
     if data is not None:
       self.from_dict(data)
     else:
       self.id = id
       self.name = name
+      self.channel_id = channel_id
       self.start_date: datetime.datetime = start_date
       self.events: list[Event] = []
       self.users: dict[str, User] = {}
 
   def is_can_be_worked_with(self) -> bool:
+    if self.channel_id is None:
+      return False
+    
     for user in self.users.values():
       if user.is_teacher():
         return True
@@ -28,9 +33,6 @@ class Course:
     if user_id in self.users:
       return self.users[user_id]
     return None
-
-  def set_start_date(self, start_date):
-    self.start_date = start_date
 
   def add_event(self, event: Event):
     self.events.append(event)
@@ -52,7 +54,8 @@ class Course:
     data = {
       "id": self.id,
       "name": self.name,
-      "start_date": None if self.start_date is None else self.start_date.strftime("%Y-%m-%d %H:%M:%S"),
+      "channel_id": self.channel_id,
+      "start_date": datetime_to_str(self.start_date),
       "events": [],
       "users": [],
     }
@@ -74,9 +77,8 @@ class Course:
   def from_dict(self, data: dict):
     self.id = data["id"]
     self.name = data["name"]
-
-    data_start_date = data["start_date"]
-    self.start_date = None if data_start_date is None else datetime.datetime.strptime(data_start_date,"%Y-%m-%d %H:%M:%S")
+    self.channel_id = data["channel_id"]
+    self.start_date = datetime_from_str(data["start_date"])
 
     self.events: list[Event] = []
     self.users: dict[str, User] = {}

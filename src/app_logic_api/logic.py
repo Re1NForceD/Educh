@@ -7,6 +7,7 @@ logger = logging.getLogger()
 ep_health = "health"
 ep_verify = "verify"
 ep_update_users = "app/update_users"
+ep_update_essensials = "app/update_essensials"
 
 class AppLogic:
   def __init__(self, config):
@@ -46,7 +47,7 @@ class AppLogic:
     return True
 
   def is_first_launch(self):
-    return len(self.course.users) == 0
+    return self.course.channel_id is None or len(self.course.users) == 0
 
   def is_need_setup_events(self):
     return len(self.course.events) == 0
@@ -66,3 +67,14 @@ class AppLogic:
     
     r_data=r.json()
     self.course = Course(data=r_data["course_data"])
+  
+  def update_essensials(self, channel_id: str=None, start_date: datetime.datetime=None):
+    r = self.send_req(func=requests.put, path=ep_update_essensials, json={"channel_id":channel_id,"start_date": datetime_to_str(start_date)})
+    if not r.ok:
+      raise RuntimeError("can't update_essensials")
+    
+    if channel_id is not None:
+      self.course.channel_id = channel_id
+
+    if start_date is not None:
+      self.course.start_date = start_date

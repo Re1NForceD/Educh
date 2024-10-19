@@ -7,6 +7,16 @@ import logging
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.DEBUG)
+#   logger = logging.getLogger()
+#   console_handler = logging.StreamHandler()
+# # [2024-10-20 00:17:58] [DEBUG] [client.py:125] Message processing started (type: hello, envelope_id: None)
+# # DEBUG:slack_bolt.App:Message processing started (type: hello, envelope_id: None)
+#   formatter = logging.Formatter(
+#       "[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
+#       datefmt="%Y-%m-%d %H:%M:%S",
+#   )
+#   console_handler.setFormatter(formatter)
+#   logger.addHandler(console_handler)
 
   # TODO: form config from env
   app_config = {

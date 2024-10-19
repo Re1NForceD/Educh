@@ -81,12 +81,12 @@ class MySQLStorage(DataStorage):
     cnx = self.get_cnx()
     
     general_info = self.exec_select(
-        cnx, f"select id, name, start_date from course where id = {course_id}")
+        cnx, f"select id, name, channel_id, start_date from course where id = {course_id}")
     
     if len(general_info) != 1:
       raise RuntimeError(f"invalid course info in db for: {course_id}")
     
-    course = Course(id=general_info[0][0], name=general_info[0][1], start_date=general_info[0][2])
+    course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], start_date=general_info[0][3])
     
     events = self.exec_select(
         cnx, f"select id, event_type_id, start_time, duration_m from course_event where course_id = {course_id}")
@@ -108,3 +108,18 @@ class MySQLStorage(DataStorage):
       self.exec_insert(cnx, f"insert into course_user (course_id, platform_id, name, role_id) values({course_id}, '{user.platform_id}', '{user.name}', {user.role})")
     cnx.commit()
 
+  def update_essensials(self, course_id: int, channel_id: str=None, start_date: datetime.datetime=None):
+    values_update = []
+
+    if channel_id is not None:
+      values_update.append(f"channel_id='{channel_id}'")
+    
+    if start_date is not None:
+      values_update.append(f"start_date='{datetime_to_str(start_date)}'")
+    
+    if len(values_update) == 0:
+      return
+    
+    cnx = self.get_cnx()
+    self.exec_update(cnx, f"update course set {','.join(values_update)} where id = {course_id}")
+    cnx.commit()

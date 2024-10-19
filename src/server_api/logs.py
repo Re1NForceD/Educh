@@ -15,30 +15,28 @@ def setup_logging():
   if not logger.hasHandlers():
     logger.setLevel(logging.INFO)
 
-    # Create log file with date and time in its name
-    log_filename = datetime.now().strftime(
-        "logs/[%Y_%m_%d]_%Hh%Mm%Ss_educh.log"
-    )
-
-    file_handler = RotatingFileHandler(
-        log_filename, maxBytes=100000, backupCount=10
-    )
-
-    file_handler.setLevel(logging.INFO)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-
     # Custom formatter with filename and line number
     formatter = logging.Formatter(
         "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
 
-    logger.addHandler(file_handler)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+    # TODO: revert
+    # Create log file with date and time in its name
+    # log_filename = datetime.now().strftime(
+    #     "logs/[%Y_%m_%d]_%Hh%Mm%Ss_educh.log"
+    # )
+    # file_handler = RotatingFileHandler(
+    #     log_filename, maxBytes=100000, backupCount=10
+    # )
+    # file_handler.setLevel(logging.INFO)
+    # file_handler.setFormatter(formatter)
+    # logger.addHandler(file_handler)
 
   return logger
 
