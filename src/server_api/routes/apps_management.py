@@ -5,6 +5,7 @@ import uuid
 from werkzeug.exceptions import BadRequest, Unauthorized, Locked
 
 from course_classes import *
+from server_logic import *
 
 logger = logging.getLogger()
 
@@ -56,12 +57,10 @@ def check_auth():
     raise Unauthorized("unknown app")
 
 
-@ep_app_verified.route("/launch_update_users", methods=["POST"])
-def app_launch_update_users():
-  logic = current_app.config['logic']
+@ep_app_verified.route("/update_users", methods=["POST"])
+def app_update_users():
+  logic: Logic = current_app.config['logic']
   course = logic.get_course_data(g.course_id)
-  if len(course.users) != 0:
-    raise Locked("course is ready")
   
   if "users" not in request.json:
     raise BadRequest("not found field: users")
@@ -70,10 +69,12 @@ def app_launch_update_users():
 
   if len(users_list) == 0:
     raise BadRequest("empty field: users")
-  
+
   users = []
   for user_data in users_list:
-    users.append(User(data=user_data))
+    user = User(data=user_data)
+    if not course.is_user_id_exists(user.platform_id):
+      users.append(user)
 
   logic.update_users(g.course_id, users)
 

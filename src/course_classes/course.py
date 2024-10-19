@@ -17,6 +17,18 @@ class Course:
       self.events: list[Event] = []
       self.users: dict[str, User] = {}
 
+  def is_can_be_worked_with(self) -> bool:
+    for user in self.users.values():
+      if user.is_teacher():
+        return True
+      
+    return False
+  
+  def get_user(self, user_id: str) -> User:
+    if user_id in self.users:
+      return self.users[user_id]
+    return None
+
   def set_start_date(self, start_date):
     self.start_date = start_date
 
@@ -26,14 +38,15 @@ class Course:
   def is_teacher_user(self, user_id: str):
     return self.users[user_id].is_teacher()
 
-  def is_user_exists(self, user: User):
-    return user.platform_id in self.users
+  def is_user_id_exists(self, user_id: str):
+    return user_id in self.users
 
-  def add_user(self, user: User):
-    if self.is_user_exists(user):
-      return
+  def add_user(self, user: User) -> bool:
+    if self.is_user_id_exists(user.platform_id):
+      return False
     
     self.users[user.platform_id] = user
+    return True
 
   def to_dict(self) -> dict:
     data = {

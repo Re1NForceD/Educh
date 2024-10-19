@@ -2,6 +2,7 @@ import os
 import logging
 
 from course_classes import *
+from server_storage import *
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 class Logic:
   def __init__(self, config, storage, comm):
     self._config = config
-    self._storage = storage  # storage.py
+    self._storage: DataStorage = storage  # storage.py
     self._comm = comm  # TODO: communication class: sendEvent
 
     self._restore()

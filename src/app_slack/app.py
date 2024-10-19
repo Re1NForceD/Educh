@@ -1,16 +1,17 @@
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-from .events import register_app_events
+from .events import register_app_events, get_home_view
 
 from course_classes import *
+from app_logic_api import *
 
 slack_app = None
 
 class SlackApp:
-  def __init__(self, config, logic):
+  def __init__(self, config, logic: AppLogic):
     self._configure_app(config)
-    self.logic = logic
+    self.logic: AppLogic = logic
 
     self.app = App(
         token=self.config["SLACK_BOT_TOKEN"],
@@ -29,19 +30,34 @@ class SlackApp:
   def start(self):
     self.logic.start()
 
-    if self.logic.is_first_launch():
-      # use this event for master init?
-      # DEBUG:slack_bolt.IgnoringSelfEvents:Skipped self event: {'subtype': 'channel_join', 'user': 'U07MC9JFN6R', 
-      # text': '<@U07MC9JFN6R> has joined the channel', 'inviter': 'U07MAGQ4PU2', 'type': 'message', 
-      # 'ts': '1729060335.359069', 'channel': 'C07LY55M7QF', 'event_ts': '1729060335.359069', 'channel_type': 'channel'}
-      users_list = self.app.client.users_list()
-      for user_info in users_list["members"]:
-        if user_info["is_bot"] or user_info["updated"] == 0:
-          continue
-        self.logic.course.add_user(User(platform_id=user_info["id"], name=user_info["profile"]["display_name_normalized"], role=(U_MASTER if user_info["is_primary_owner"] else U_GUEST)))
-      self.logic.launch_update_users()
+    # if self.logic.is_first_launch():
+    users_list = self.app.client.users_list()
+    new_users: list[User] = []
+    for user_info in users_list["members"]:
+      if user_info["is_bot"] or user_info["updated"] == 0:
+        continue
+      user = User(platform_id=user_info["id"], name=user_info["profile"]["display_name_normalized"], role=(U_MASTER if user_info["is_primary_owner"] else U_GUEST))
+      if self.logic.course.add_user(user):
+        new_users.append(user)
 
+    if len(new_users) > 0:
+      self.logic.update_users()
+      for user in new_users:
+        self.update_home_page(user)
+
+    if not self.logic.course.is_can_be_worked_with():
+      raise Exception("course can not be worked with")
+    
     SocketModeHandler(self.app, self.config["SLACK_APP_TOKEN"]).start()
+
+  def update_home_page(self, user: User):
+    try:
+      self.app.client.views_publish(
+          user_id=user.platform_id,
+          view=get_home_view(user, self.logic)
+      )
+    except Exception as e:
+      logger.error(f"Error publishing home tab: {e}")
 
 def init_slack_app(config, app_logic):
   slack_app = SlackApp(config, app_logic)

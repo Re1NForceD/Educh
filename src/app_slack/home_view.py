@@ -2,22 +2,34 @@ import datetime
 from course_classes import *
 from app_logic_api import *
 
-def get_home_view(user_id: str, logic: AppLogic):
-  is_teacher = logic.is_teacher_user(user_id)
+def get_home_view(user: User, logic: AppLogic):
+  blocks = []
+
+  is_teacher = user.is_teacher()
   is_need_setup_events = logic.is_need_setup_events()
+  logger.info(f"setup home view params: {is_teacher}, {is_need_setup_events}")
+
+  if is_teacher: # TODO
+    if is_need_setup_events:
+      blocks = get_events_setup_blocks(user, logic)
+    else:
+      pass
+  else:
+    blocks = get_default_blocks(user, logic)
+  
   return {
       "type": "home",
       "callback_id": "home_view",
-      "blocks": get_events_setup_blocks(user_id, logic) if is_teacher and is_need_setup_events else get_default_blocks(user_id, logic)
+      "blocks": blocks,
   }
 
-def get_default_blocks(user_id: str, logic: AppLogic):
+def get_default_blocks(user: User, logic: AppLogic):
   return [
       {
           "type": "section",
           "text": {
               "type": "plain_text",
-              "text": f"*Welcome to your _App's Home tab_* :tada: {user_id}!"
+              "text": f"*Welcome to your _App's Home tab_* :tada: {user.platform_id}!"
           }
       },
       {
@@ -32,7 +44,7 @@ def get_default_blocks(user_id: str, logic: AppLogic):
       }
   ]
 
-def get_events_setup_blocks(user_id: str, logic: AppLogic):
+def get_events_setup_blocks(user: User, logic: AppLogic):
   return [
     {
       "type": "header",
