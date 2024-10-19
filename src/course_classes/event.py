@@ -2,14 +2,13 @@ from .tools import *
 
 # event_types
 E_INVALID = 0
-E_GREETINGS = 1
-E_RESOURCES = 2
-E_CLASS = 3
-E_TEST = 4
-event_types = [E_GREETINGS, E_RESOURCES, E_CLASS, E_TEST]
-event_types_str = {E_GREETINGS: "greetings", E_RESOURCES: "resources", E_CLASS: "class", E_TEST: "test"}
-event_types_to_code = {E_GREETINGS: "e_greetings", E_RESOURCES: "e_resources", E_CLASS: "e_class", E_TEST: "e_test"}
-event_types_from_code = {"e_greetings": E_GREETINGS, "e_resources": E_RESOURCES, "e_class": E_CLASS, "e_test": E_TEST}
+E_RESOURCES = 1
+E_CLASS = 2
+E_TEST = 3
+event_types = [E_RESOURCES, E_CLASS, E_TEST]
+event_types_str = {E_RESOURCES: "resources", E_CLASS: "class", E_TEST: "test"}
+event_types_to_code = {E_RESOURCES: "e_resources", E_CLASS: "e_class", E_TEST: "e_test"}
+event_types_from_code = {"e_resources": E_RESOURCES, "e_class": E_CLASS, "e_test": E_TEST}
 
 class Event():
   def __init__(self, id: int, start_time: datetime.datetime, duration_m: int):
@@ -27,12 +26,6 @@ class Event():
     }
 
     return data
-
-
-class GreetingsEvent(Event):
-  def __init__(self, id: int, start_time: datetime.datetime, duration_m: int):
-    super().__init__(id, start_time, duration_m)
-    self.type = E_GREETINGS
 
 
 class ResourcesEvent(Event):
@@ -54,9 +47,7 @@ class TestEvent(Event):
 
 
 def get_event(id: int, type: int, start_time: datetime.datetime, duration_m: int):
-  if type == E_GREETINGS:
-    return GreetingsEvent(id, start_time, duration_m)
-  elif type == E_RESOURCES:
+  if type == E_RESOURCES:
     return ResourcesEvent(id, start_time, duration_m)
   elif type == E_CLASS:
     return ClassEvent(id, start_time, duration_m)
