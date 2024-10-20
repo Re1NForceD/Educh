@@ -37,20 +37,20 @@ class SlackApp:
       self.app.client.conversations_setPurpose(channel=channel_id, purpose="Channel created by Educh App for learning!")
       self.logic.update_essensials(channel_id=channel_id)
 
-    users_list = self.app.client.users_list()
-    new_users: list[User] = []
-    for user_info in users_list["members"]:
-      if user_info["is_bot"] or user_info["updated"] == 0:
-        continue
-      user = User(platform_id=user_info["id"], name=user_info["profile"]["display_name_normalized"], role=(U_MASTER if user_info["is_primary_owner"] else U_GUEST))
-      if self.logic.course.add_user(user):
-        new_users.append(user)
+    # users_list = self.app.client.users_list()
+    # new_users: list[User] = []
+    # for user_info in users_list["members"]:
+    #   if user_info["is_bot"] or user_info["updated"] == 0:
+    #     continue
+    #   user = User(platform_id=user_info["id"], name=user_info["profile"]["display_name_normalized"], role=(U_MASTER if user_info["is_primary_owner"] else U_GUEST))
+    #   if self.logic.course.add_user(user):
+    #     new_users.append(user)
 
-    if len(new_users) > 0:
-      self.app.client.conversations_invite(channel=self.logic.course.channel_id, users=[user.platform_id for user in new_users], force=True)
-      self.logic.update_users()
-      for user in new_users:
-        self.update_home_page(user)
+    # if len(new_users) > 0:
+    #   self.app.client.conversations_invite(channel=self.logic.course.channel_id, users=[user.platform_id for user in new_users], force=True)
+    #   self.logic.update_users()
+    #   for user in new_users:
+    #     self.update_home_page(user)
 
     if not self.logic.course.is_can_be_worked_with():
       raise Exception("course can not be worked with")

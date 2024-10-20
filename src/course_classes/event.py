@@ -11,12 +11,20 @@ event_types_to_code = {E_RESOURCES: "e_resources", E_CLASS: "e_class", E_TEST: "
 event_types_from_code = {"e_resources": E_RESOURCES, "e_class": E_CLASS, "e_test": E_TEST}
 
 class Event():
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, duration_m: int):
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict = None):
     self.id = id
     self.name = name
     self.type = E_INVALID
     self.start_time = start_time
-    self.duration_m = None if duration_m is None or duration_m <= 0 else duration_m
+    
+    if details is not None:
+      self.from_dict_details(details)
+
+  def from_dict_details(self, details: dict):
+    pass
+
+  def to_dict_details(self) -> dict:
+    pass
 
   def to_dict(self) -> dict:
     data = {
@@ -24,38 +32,38 @@ class Event():
       "name": self.name,
       "type": self.type,
       "start_time": datetime_to_str(self.start_time),
-      "duration_m": self.duration_m,
+      "details": self.to_dict_details(),
     }
 
     return data
 
 
 class ResourcesEvent(Event):
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, duration_m: int):
-    super().__init__(id, name, start_time, duration_m)
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    super().__init__(id, name, start_time, details)
     self.type = E_RESOURCES
 
 
 class ClassEvent(Event):
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, duration_m: int):
-    super().__init__(id, name, start_time, duration_m)
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    super().__init__(id, name, start_time, details)
     self.type = E_CLASS
 
 
 class TestEvent(Event):
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, duration_m: int):
-    super().__init__(id, name, start_time, duration_m)
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    super().__init__(id, name, start_time, details)
     self.type = E_TEST
 
 
-def get_event(id: int, name: str, type: int, start_time: datetime.datetime, duration_m: int):
+def get_event(id: int, name: str, type: int, start_time: datetime.datetime, details: dict = None):
   if type == E_RESOURCES:
-    return ResourcesEvent(id, name, start_time, duration_m)
+    return ResourcesEvent(id, name, start_time, details)
   elif type == E_CLASS:
-    return ClassEvent(id, name, start_time, duration_m)
+    return ClassEvent(id, name, start_time, details)
   elif type == E_TEST:
-    return TestEvent(id, name, start_time, duration_m)
+    return TestEvent(id, name, start_time, details)
 
 
 def get_event_from_dict(data: dict):
-  return get_event(data["id"], data["name"], data["type"], datetime_from_str(data["start_time"]), data["duration_m"])
+  return get_event(data["id"], data["name"], data["type"], datetime_from_str(data["start_time"]), data.get("details"))
