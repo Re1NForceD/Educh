@@ -29,3 +29,9 @@ class Logic:
 
   def update_essensials(self, course_id: int, channel_id: str=None, start_date: datetime.datetime=None):
     self._storage.update_essensials(course_id, channel_id, start_date)
+
+  def add_events(self, course_id: int, events: list[Event]):
+    self._storage.add_events(course_id, events)
+
+  def update_events(self, course_id: int, events: list[Event]):
+    self._storage.update_events(course_id, events)

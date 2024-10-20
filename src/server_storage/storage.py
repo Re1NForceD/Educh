@@ -28,3 +28,9 @@ class DataStorage():
 
   def update_essensials(self, course_id: int, channel_id: str=None, start_date: datetime.datetime=None):
     pass
+
+  def add_events(self, course_id: int, events: list[Event]):
+    pass
+
+  def update_events(self, course_id: int, events: list[Event]):
+    pass

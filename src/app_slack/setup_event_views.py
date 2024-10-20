@@ -2,6 +2,7 @@ from course_classes import *
 from app_logic_api import *
 
 from slack_bolt import Ack
+import json
 
 
 def handle_add_course(client, ack: Ack, body, logger):
@@ -128,6 +129,26 @@ def get_setup_event_modal_details_fields_resources() -> list:
   return [
     {
       "type": "input",
+      "block_id": "event_info_select",
+      "element": {
+        "type": "rich_text_input",
+        "action_id": "event_info",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter info you want share on this event"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event information"
+      }
+    },
+  ]
+  
+def get_setup_event_modal_details_fields_class() -> list:
+  return [
+    {
+      "type": "input",
       "block_id": "event_duration_select",
       "element": {
         "type": "number_input",
@@ -147,11 +168,28 @@ def get_setup_event_modal_details_fields_resources() -> list:
     },
   ]
   
-def get_setup_event_modal_details_fields_class() -> list:
-  return []
-  
 def get_setup_event_modal_details_fields_test() -> list:
-  return []
+  return [
+    {
+      "type": "input",
+      "block_id": "event_duration_select",
+      "element": {
+        "type": "number_input",
+        "is_decimal_allowed": False,
+        "action_id": "event_duration",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter event duration in minutes"
+        },
+        "min_value": "10",
+        "max_value": "300"
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event duration (minutes)"
+      }
+    },
+  ]
 
 
 # view processing
@@ -169,7 +207,7 @@ def modal_event_setup_base_callback(ack: Ack, body, client, logger):
   
   logger.info(f"got basic event data: {event_name}, {event_type_code} - {event_type}, {event_datetime_stamp} - {event_datetime}")
 
-  event = get_event(0, event_name, event_type, event_datetime)
+  event = get_event(0, event_type, event_name, event_datetime)
   events_in_process[user_id] = event
   
   # ack()#response_action="errors", errors={"event_name_input":"You are loh"})
@@ -193,7 +231,7 @@ def modal_event_setup_details_callback(context, ack: Ack, body, logger):
   add_new_event(event, logic)
 
 def add_new_event(event: Event, logic: AppLogic):
-  pass
+  logic.update_events([event])
 
 def set_event_details(event: Event, modal_values: dict):
   if event.type == E_RESOURCES:
@@ -203,12 +241,18 @@ def set_event_details(event: Event, modal_values: dict):
   elif event.type == E_TEST:
     set_event_details_test(event, modal_values)
 
-def set_event_details_resources(event: Event, modal_values: dict):
-  event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-  logger.info(f"got resources details: {event_duration}")
+def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
+  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
+  event_info_str = json.dumps(event_info)
+
+  logger.info(f"got resources details: {event_info_str}")
+
+  event.info = event_info_str
 
 def set_event_details_class(event: Event, modal_values: dict):
-  pass
+  event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
+  logger.info(f"got class details: {event_duration}")
 
 def set_event_details_test(event: Event, modal_values: dict):
-  pass
+  event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
+  logger.info(f"got test details: {event_duration}")

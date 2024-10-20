@@ -8,6 +8,7 @@ ep_health = "health"
 ep_verify = "verify"
 ep_update_users = "app/update_users"
 ep_update_essensials = "app/update_essensials"
+ep_update_events = "app/update_events"
 
 class AppLogic:
   def __init__(self, config):
@@ -78,3 +79,11 @@ class AppLogic:
 
     if start_date is not None:
       self.course.start_date = start_date
+  
+  def update_events(self, events: list[Event]):
+    r = self.send_req(func=requests.put, path=ep_update_events, json={"events": [event.to_dict() for event in events]})
+    if not r.ok:
+      raise RuntimeError("can't update_events")
+    
+    r_data=r.json()
+    self.course = Course(data=r_data["course_data"])

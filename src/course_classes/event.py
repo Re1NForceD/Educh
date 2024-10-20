@@ -43,6 +43,14 @@ class ResourcesEvent(Event):
     super().__init__(id, name, start_time, details)
     self.type = E_RESOURCES
 
+  def from_dict_details(self, details: dict):
+    self.info = details["info"]
+
+  def to_dict_details(self) -> dict:
+    return {
+      "info": self.info,
+    }
+
 
 class ClassEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
@@ -56,7 +64,7 @@ class TestEvent(Event):
     self.type = E_TEST
 
 
-def get_event(id: int, name: str, type: int, start_time: datetime.datetime, details: dict = None):
+def get_event(id: int, type: int, name: str, start_time: datetime.datetime, details: dict = None):
   if type == E_RESOURCES:
     return ResourcesEvent(id, name, start_time, details)
   elif type == E_CLASS:
@@ -66,4 +74,4 @@ def get_event(id: int, name: str, type: int, start_time: datetime.datetime, deta
 
 
 def get_event_from_dict(data: dict):
-  return get_event(data["id"], data["name"], data["type"], datetime_from_str(data["start_time"]), data.get("details"))
+  return get_event(data["id"], data["type"], data["name"], datetime_from_str(data["start_time"]), data.get("details"))

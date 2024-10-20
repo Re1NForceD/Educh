@@ -92,3 +92,32 @@ def app_update_essensials():
   logic.update_essensials(g.course_id, request.json["channel_id"], datetime_from_str(request.json["start_date"]))
 
   return {}, 200
+
+
+@ep_app_verified.route("/update_events", methods=["PUT"])
+def app_update_events():
+  logic: Logic = current_app.config['logic']
+  course = logic.get_course_data(g.course_id)
+  
+  if "events" not in request.json:
+    raise BadRequest("not found field: events")
+  
+  events_list = request.json["events"]
+
+  if len(events_list) == 0:
+    raise BadRequest("empty field: events")
+
+  events_new: list[Event] = []
+  events_update: list[Event] = []
+  for event_data in events_list:
+    event = get_event_from_dict(event_data)
+    if event.id == 0:
+      events_new.append(event)
+    else:
+      events_update.append(event)
+
+  logic.add_events(g.course_id, events_new)
+  logic.update_events(g.course_id, events_update)
+
+  course = logic.get_course_data(g.course_id)
+  return {"course_data": course.to_dict()}, 200

@@ -74,8 +74,15 @@ class MySQLStorage(DataStorage):
 
     return rows[0][1]
   
-  def get_event(self, db_row):
-    return get_event(*db_row)
+  def get_event(self, db_row) -> Event:
+    event = get_event(id=db_row[0], type=db_row[1], name=db_row[2], start_time=db_row[3])
+    if event.type == E_RESOURCES: # cols: 4
+      event.info = db_row[4]
+    elif event.type == E_CLASS: # cols: 5
+      event.duration_m = db_row[5]
+    elif event.type == E_TEST: # cols: 6
+      event.duration_m = db_row[6]
+    return event
   
   def get_course_data(self, course_id: int) -> Course:
     cnx = self.get_cnx()
@@ -89,7 +96,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], start_date=general_info[0][3])
     
     events = self.exec_select(
-        cnx, f"select id, name, event_type_id, start_time, duration_m from course_event where course_id = {course_id}")
+        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_resources_details cerd on ce.event_data_id = cerd.id left outer join course_event_class_details cecd on ce.event_data_id = cecd.id left outer join course_event_test_details cetd on ce.event_data_id = cetd.id where course_id = {course_id}")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
@@ -123,3 +130,33 @@ class MySQLStorage(DataStorage):
     cnx = self.get_cnx()
     self.exec_update(cnx, f"update course set {','.join(values_update)} where id = {course_id}")
     cnx.commit()
+
+  def insert_event_details_resources(self, cnx, event: ResourcesEvent):
+    return self.exec_insert(cnx, f"insert into course_event_resources_details (info) values('{event.info}')")
+
+  def insert_event_details_class(self, cnx, event: ClassEvent):
+    pass
+
+  def insert_event_details_test(self, cnx, event: TestEvent):
+    pass
+
+  def insert_event_details(self, cnx, event: Event):
+    if event.type == E_RESOURCES:
+      return self.insert_event_details_resources(cnx, event)
+    elif event.type == E_CLASS:
+      return self.insert_event_details_class(cnx, event)
+    elif event.type == E_TEST:
+      return self.insert_event_details_test(cnx, event)
+
+  def insert_event(self, cnx, course_id: int, event: Event):
+    row_id = self.insert_event_details(cnx, event)
+    self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, event_data_id, name, start_time) values({course_id}, {event.type}, {row_id}, '{event.name}', '{datetime_to_str(event.start_time)}')")
+
+  def add_events(self, course_id: int, events: list[Event]):
+    cnx = self.get_cnx()
+    for event in events:
+      self.insert_event(cnx, course_id, event)
+    cnx.commit()
+
+  def update_events(self, course_id: int, events: list[Event]):
+    pass
