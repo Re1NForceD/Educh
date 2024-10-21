@@ -117,7 +117,7 @@ def get_setup_event_modal(event: Event=None):
     if event.start_time is not None:
       blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
     
-    blocks.append(*get_setup_event_modal_details_fields(event))
+    blocks += get_setup_event_modal_details_fields(event)
 
   if event is not None:
     modal["private_metadata"] = event_types_to_code[event.type]
@@ -177,6 +177,22 @@ def get_setup_event_modal_details_fields_class() -> list:
         "text": "Event duration (minutes)"
       }
     },
+    {
+      "type": "input",
+      "block_id": "event_info_select",
+      "element": {
+        "type": "rich_text_input",
+        "action_id": "event_info",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter info you want share on this event"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event information to share"
+      }
+    },
   ]
   
 def get_setup_event_modal_details_fields_test() -> list:
@@ -200,6 +216,22 @@ def get_setup_event_modal_details_fields_test() -> list:
         "text": "Event duration (minutes)"
       }
     },
+    {
+      "type": "input",
+      "block_id": "event_info_select",
+      "element": {
+        "type": "rich_text_input",
+        "action_id": "event_info",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter info you want share on this event"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event information to share"
+      }
+    },
   ]
 
 
@@ -209,7 +241,7 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   is_first_setup_view = len(body["view"].get("private_metadata")) == 0
   
   event_name = modal_values["event_name_input"]["event_name"]["value"]
-  event_type_code = modal_values["event_type_select"]["event_type"]["selected_option"]["value"] if is_first_setup_view else event_types_from_code(body["container"]["view"].get("private_metadata"))
+  event_type_code = modal_values["event_type_select"]["event_type"]["selected_option"]["value"] if is_first_setup_view else body["view"].get("private_metadata")
   event_type = event_types_from_code[event_type_code]
   event_datetime_stamp = modal_values["event_datetime_select"]["event_datetime"]["selected_date_time"]
   event_datetime = datetime.datetime.fromtimestamp(event_datetime_stamp)
@@ -250,10 +282,20 @@ def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
 
   event.info = event_info_str
 
-def set_event_details_class(event: Event, modal_values: dict):
+def set_event_details_class(event: ClassEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-  logger.info(f"got class details: {event_duration}")
+  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
+  event_info_str = json.dumps(event_info)
 
-def set_event_details_test(event: Event, modal_values: dict):
+  logger.info(f"got class details: {event_duration}, {event_info_str}")
+
+  event.info = event_info_str
+  event.duration_m = event_duration
+
+def set_event_details_test(event: TestEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-  logger.info(f"got test details: {event_duration}")
+  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
+  event_info_str = json.dumps(event_info)
+
+  logger.info(f"got test details: {event_duration}, {event_info_str}")
+  

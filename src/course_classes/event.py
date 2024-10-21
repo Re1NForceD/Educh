@@ -40,6 +40,7 @@ class Event():
 
 class ResourcesEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    self.info: str = None
     super().__init__(id, name, start_time, details)
     self.type = E_RESOURCES
 
@@ -54,12 +55,27 @@ class ResourcesEvent(Event):
 
 class ClassEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    self.info: str = None
+    self.duration_m: int = None
     super().__init__(id, name, start_time, details)
     self.type = E_CLASS
+
+  def from_dict_details(self, details: dict):
+    self.info = details["info"]
+    self.duration_m = details["duration_m"]
+
+  def to_dict_details(self) -> dict:
+    return {
+      "info": self.info,
+      "duration_m": self.duration_m,
+    }
 
 
 class TestEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
+    self.info: str = None
+    self.duration_m: int = None
+    self.config: dict = None
     super().__init__(id, name, start_time, details)
     self.type = E_TEST
 

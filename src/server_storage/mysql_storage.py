@@ -96,7 +96,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], start_date=general_info[0][3])
     
     events = self.exec_select(
-        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_resources_details cerd on ce.id = cerd.event_id left outer join course_event_class_details cecd on ce.id = cecd.event_id left outer join course_event_test_details cetd on ce.id = cetd.event_id where course_id = {course_id}")
+        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_details_resources cerd on ce.id = cerd.event_id left outer join course_event_details_class cecd on ce.id = cecd.event_id left outer join course_event_details_test cetd on ce.id = cetd.event_id where course_id = {course_id}")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
@@ -132,21 +132,21 @@ class MySQLStorage(DataStorage):
     cnx.commit()
 
   def insert_event_details_resources(self, cnx, event: ResourcesEvent):
-    return self.exec_insert(cnx, f"insert into course_event_resources_details (event_id, info) values({event.id}, '{event.info}')")
+    self.exec_insert(cnx, f"insert into course_event_details_resources (event_id, info) values({event.id}, '{event.info}')")
 
   def insert_event_details_class(self, cnx, event: ClassEvent):
-    pass
+    self.exec_insert(cnx, f"insert into course_event_details_class (event_id, info, duration_m) values({event.id}, '{event.info}', {event.duration_m})")
 
   def insert_event_details_test(self, cnx, event: TestEvent):
     pass
 
   def insert_event_details(self, cnx, event: Event):
     if event.type == E_RESOURCES:
-      return self.insert_event_details_resources(cnx, event)
+      self.insert_event_details_resources(cnx, event)
     elif event.type == E_CLASS:
-      return self.insert_event_details_class(cnx, event)
+      self.insert_event_details_class(cnx, event)
     elif event.type == E_TEST:
-      return self.insert_event_details_test(cnx, event)
+      self.insert_event_details_test(cnx, event)
 
   def insert_event(self, cnx, course_id: int, event: Event):
     event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}')")
@@ -165,10 +165,10 @@ class MySQLStorage(DataStorage):
       logger.error(f"incorrect event update, updated rows: {updated_rows}, for event: {event.to_dict()}")
 
   def update_event_details_resources(self, cnx, event: ResourcesEvent):
-    return self.exec_insert(cnx, f"update course_event_resources_details set info='{event.info}' where event_id={event.id}")
+    return self.exec_insert(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
 
   def update_event_details_class(self, cnx, event: ClassEvent):
-    pass
+    return self.exec_insert(cnx, f"update course_event_details_class set info='{event.info}', duration_m={event.duration_m} where event_id={event.id}")
 
   def update_event_details_test(self, cnx, event: TestEvent):
     pass
