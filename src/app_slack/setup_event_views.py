@@ -9,29 +9,60 @@ def handle_add_course(client, ack: Ack, body, logger):
   ack()
   client.views_open(
       trigger_id=body["trigger_id"],
-      view=get_setup_event_modal_base()
+      view=get_setup_event_modal()
   )
 
 def event_type_options(ack):
   ack({"options": get_event_type_model()})
 
+def get_event_type_option(type: int):
+  return {
+    "text": {
+      "type": "plain_text",
+      "text": event_types_str[type],
+      "emoji": True
+    },
+    "value": event_types_to_code[type]
+  }
+
 def get_event_type_model():
   model = []
   for type in event_types:
-    model.append({
-      "text": {
-        "type": "plain_text",
-        "text": event_types_str[type],
-        "emoji": True
-      },
-      "value": event_types_to_code[type]
-    })
+    model.append(get_event_type_option(type))
   return model
 
-def get_setup_event_modal_base():
-  return {
+def get_event_type_field(event: Event):
+  if event is None:
+    return {
+      "type": "input",
+      "block_id": "event_type_select",
+      "element": {
+        "type": "external_select",
+        "action_id": "event_type",
+        "min_query_length": 0,
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Select an event type"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event type"
+      }
+    }
+  else:
+    return {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Event type:* _{event_types_str[event.type]}_"
+      }
+    }
+
+def get_setup_event_modal(event: Event=None):
+  modal = {
     "type": "modal",
-    "callback_id": "view_event_setup_base",
+    "callback_id": "view_event_setup",
     "title": {
       "type": "plain_text",
       "text": "Setup event"
@@ -44,81 +75,61 @@ def get_setup_event_modal_base():
       "type": "plain_text",
       "text": "Cancel"
     },
-    "blocks": [
-      {
-        "type": "input",
-        "block_id": "event_name_input",
-        "element": {
-          "type": "plain_text_input",
-          "action_id": "event_name",
-          "min_length": 5,
-          "max_length": 255,
-          "placeholder": {
-            "type": "plain_text",
-            "text": "Enter an event name"
-          },
-        },
-        "label": {
-          "type": "plain_text",
-          "text": "Event name",
-        },
-      },
-      {
-        "type": "input",
-        "block_id": "event_type_select",
-        "element": {
-          "type": "external_select",
-          "action_id": "event_type",
-          "placeholder": {
-            "type": "plain_text",
-            "text": "Select an event type"
-          },
-          "min_query_length": 0
-        },
-        "label": {
-          "type": "plain_text",
-          "text": "Event type"
-        }
-      },
-      {
-        "type": "input",
-        "block_id": "event_datetime_select",
-        "element": {
-          "type": "datetimepicker",
-          "action_id": "event_datetime"
-        },
-        "label": {
-          "type": "plain_text",
-          "text": "Event date",
-        }
-      },
-    ]
   }
 
-def get_setup_event_modal_details(event: Event):
-  return {
-    "type": "modal",
-    "callback_id": "view_event_setup_details",
-    "private_metadata": event_types_to_code[event.type],
-    "title": {
-      "type": "plain_text",
-      "text": "Setup event details"
+  blocks = [
+    {
+      "type": "input",
+      "block_id": "event_name_input",
+      "element": {
+        "type": "plain_text_input",
+        "action_id": "event_name",
+        "min_length": 5,
+        "max_length": 255,
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter an event name"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event name",
+      },
     },
-    "submit": {
-      "type": "plain_text",
-      "text": "Submit"
+    get_event_type_field(event),
+    {
+      "type": "input",
+      "block_id": "event_datetime_select",
+      "element": {
+        "type": "datetimepicker",
+        "action_id": "event_datetime",
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event date",
+      }
     },
-    "close": {
-      "type": "plain_text",
-      "text": "Cancel"
-    },
-    "blocks": [
-      *get_setup_event_modal_details_fields(event),
-    ]
-  }
+  ]
+  
+  if event is not None:
+    blocks[0]["element"]["initial_value"] = event.name
+    # blocks[1]["element"]["initial_option"] = get_event_type_option(event.type)
+    if event.start_time is not None:
+      blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
+    
+    blocks.append(*get_setup_event_modal_details_fields(event))
+
+  if event is not None:
+    modal["private_metadata"] = event_types_to_code[event.type]
+
+  modal["blocks"] = blocks
+
+  return modal
 
 def get_setup_event_modal_details_fields(event: Event) -> list:
-  if event.type == E_RESOURCES:
+  if event is None:
+    return []
+  elif event.type == E_RESOURCES:
     return get_setup_event_modal_details_fields_resources()
   elif event.type == E_CLASS:
     return get_setup_event_modal_details_fields_class()
@@ -140,7 +151,7 @@ def get_setup_event_modal_details_fields_resources() -> list:
       },
       "label": {
         "type": "plain_text",
-        "text": "Event information"
+        "text": "Event information to share"
       }
     },
   ]
@@ -193,14 +204,12 @@ def get_setup_event_modal_details_fields_test() -> list:
 
 
 # view processing
-events_in_process: dict[str, Event] = {}
-
-def modal_event_setup_base_callback(ack: Ack, body, client, logger):
-  user_id = body["user"]["id"]
+def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   modal_values = body["view"]["state"]["values"]
+  is_first_setup_view = len(body["view"].get("private_metadata")) == 0
   
   event_name = modal_values["event_name_input"]["event_name"]["value"]
-  event_type_code = modal_values["event_type_select"]["event_type"]["selected_option"]["value"]
+  event_type_code = modal_values["event_type_select"]["event_type"]["selected_option"]["value"] if is_first_setup_view else event_types_from_code(body["container"]["view"].get("private_metadata"))
   event_type = event_types_from_code[event_type_code]
   event_datetime_stamp = modal_values["event_datetime_select"]["event_datetime"]["selected_date_time"]
   event_datetime = datetime.datetime.fromtimestamp(event_datetime_stamp)
@@ -208,25 +217,17 @@ def modal_event_setup_base_callback(ack: Ack, body, client, logger):
   logger.info(f"got basic event data: {event_name}, {event_type_code} - {event_type}, {event_datetime_stamp} - {event_datetime}")
 
   event = get_event(0, event_type, event_name, event_datetime)
-  events_in_process[user_id] = event
-  
-  # ack()#response_action="errors", errors={"event_name_input":"You are loh"})
-  ack(response_action="update", view=get_setup_event_modal_details(event))
 
-def modal_event_setup_details_callback(context, ack: Ack, body, logger):
-  user_id = body["user"]["id"]
-  event = events_in_process[user_id]
-  event_type = event_types_from_code[body["view"]["private_metadata"]]
-  modal_values = body["view"]["state"]["values"]
-  logic: AppLogic = context["logic"]
-
-  if event.type is not event_type:
-    ack(response_action="errors", errors={"error_block": "Something went wrong :("})
+  # logger.info(f"sfjsdfshd {body} - [{body['view'].get('private_metadata')}]")
+  if is_first_setup_view:
+    ack(response_action="update", view=get_setup_event_modal(event))
     return
+  else:
+    ack(response_action="clear")
+  # ack(response_action="errors", errors={"event_name_input":"You are loh"})
   
-  ack(response_action="clear")
-  
-  events_in_process.pop(user_id)
+  # set event details and add event
+  logic: AppLogic = context["logic"]
   set_event_details(event, modal_values)
   add_new_event(event, logic)
 

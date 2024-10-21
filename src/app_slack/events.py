@@ -51,6 +51,5 @@ def register_app_events(app, logic):
   app.event("message")(handle_message_event)
 
   app.action("click_add_event")(handle_add_course)
-  app.view("view_event_setup_base")(modal_event_setup_base_callback)
-  app.view("view_event_setup_details")(modal_event_setup_details_callback)
+  app.view("view_event_setup")(modal_event_setup_callback)
   app.options("event_type")(event_type_options)

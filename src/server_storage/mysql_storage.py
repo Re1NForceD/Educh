@@ -96,7 +96,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], start_date=general_info[0][3])
     
     events = self.exec_select(
-        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_resources_details cerd on ce.event_data_id = cerd.id left outer join course_event_class_details cecd on ce.event_data_id = cecd.id left outer join course_event_test_details cetd on ce.event_data_id = cetd.id where course_id = {course_id}")
+        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_resources_details cerd on ce.id = cerd.event_id left outer join course_event_class_details cecd on ce.id = cecd.event_id left outer join course_event_test_details cetd on ce.id = cetd.event_id where course_id = {course_id}")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
@@ -132,7 +132,7 @@ class MySQLStorage(DataStorage):
     cnx.commit()
 
   def insert_event_details_resources(self, cnx, event: ResourcesEvent):
-    return self.exec_insert(cnx, f"insert into course_event_resources_details (info) values('{event.info}')")
+    return self.exec_insert(cnx, f"insert into course_event_resources_details (event_id, info) values({event.id}, '{event.info}')")
 
   def insert_event_details_class(self, cnx, event: ClassEvent):
     pass
@@ -149,8 +149,9 @@ class MySQLStorage(DataStorage):
       return self.insert_event_details_test(cnx, event)
 
   def insert_event(self, cnx, course_id: int, event: Event):
-    row_id = self.insert_event_details(cnx, event)
-    self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, event_data_id, name, start_time) values({course_id}, {event.type}, {row_id}, '{event.name}', '{datetime_to_str(event.start_time)}')")
+    event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}')")
+    event.id = event_id
+    self.insert_event_details(cnx, event)
 
   def add_events(self, course_id: int, events: list[Event]):
     cnx = self.get_cnx()
@@ -158,5 +159,34 @@ class MySQLStorage(DataStorage):
       self.insert_event(cnx, course_id, event)
     cnx.commit()
 
-  def update_events(self, course_id: int, events: list[Event]):
+  def update_event_base(self, cnx, course_id: int, event: Event):
+    updated_rows = self.exec_update(cnx, f"update course_event set name='{event.name}', start_time='{datetime_to_str(event.start_time)}' where course_id={course_id} and id={event.id} and event_type_id={event.type}")
+    if updated_rows != 1:
+      logger.error(f"incorrect event update, updated rows: {updated_rows}, for event: {event.to_dict()}")
+
+  def update_event_details_resources(self, cnx, event: ResourcesEvent):
+    return self.exec_insert(cnx, f"update course_event_resources_details set info='{event.info}' where event_id={event.id}")
+
+  def update_event_details_class(self, cnx, event: ClassEvent):
     pass
+
+  def update_event_details_test(self, cnx, event: TestEvent):
+    pass
+
+  def update_event_details(self, cnx, course_id: int, event: Event):
+    if event.type == E_RESOURCES:
+      self.update_event_details_resources(cnx, event)
+    elif event.type == E_CLASS:
+      self.update_event_details_class(cnx, event)
+    elif event.type == E_TEST:
+      self.update_event_details_test(cnx, event)
+
+  def update_event(self, cnx, course_id: int, event: Event):
+    self.update_event_base(cnx, course_id, event)
+    self.update_event_details(cnx, course_id, event)
+
+  def update_events(self, course_id: int, events: list[Event]):
+    cnx = self.get_cnx()
+    for event in events:
+      self.update_event(cnx, course_id, event)
+    cnx.commit()
