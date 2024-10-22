@@ -2,6 +2,7 @@ from slack_sdk import WebClient
 
 from .home_views import *
 from .setup_event_views import *
+from .setup_test_views import handle_add_test, handle_remove_test, handle_edit_test, test_type_options, modal_test_setup_callback
 
 from app_logic_api import *
 
@@ -53,3 +54,9 @@ def register_app_events(app, logic):
   app.action("click_add_event")(handle_add_course)
   app.view("view_event_setup")(modal_event_setup_callback)
   app.options("event_type")(event_type_options)
+
+  app.action("click_add_test")(handle_add_test)
+  app.view("view_test_setup")(modal_test_setup_callback)
+  app.options("test_type")(test_type_options)
+  app.action("click_remove_test")(handle_remove_test)
+  app.action("click_edit_test")(handle_edit_test)

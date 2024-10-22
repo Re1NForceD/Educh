@@ -2,15 +2,30 @@ from course_classes import *
 from app_logic_api import *
 
 from slack_bolt import Ack
+from slack_sdk import WebClient
 import json
 
 
+events_in_process: dict[str, list[str, Event]] = {} # [user_id, [view_id, Event]]
+
+def get_event_in_process(user_id: str):
+  return events_in_process.get(user_id)
+
+def pop_event_in_process(user_id: str):
+  data = events_in_process.get(user_id)
+  events_in_process.pop(user_id)
+  return data
+
+def add_event_in_process(user_id: str, view_id: str, event: Event):
+  events_in_process[user_id] = [view_id, event]
+
 def handle_add_course(client, ack: Ack, body, logger):
   ack()
-  client.views_open(
+  resp = client.views_open(
       trigger_id=body["trigger_id"],
       view=get_setup_event_modal()
   )
+  add_event_in_process(body["user"]["id"], resp["view"]["id"], None)
 
 def event_type_options(ack):
   ack({"options": get_event_type_model()})
@@ -134,7 +149,7 @@ def get_setup_event_modal_details_fields(event: Event) -> list:
   elif event.type == E_CLASS:
     return get_setup_event_modal_details_fields_class()
   elif event.type == E_TEST:
-    return get_setup_event_modal_details_fields_test()
+    return get_setup_event_modal_details_fields_test(event)
   
 def get_setup_event_modal_details_fields_resources() -> list:
   return [
@@ -195,8 +210,8 @@ def get_setup_event_modal_details_fields_class() -> list:
     },
   ]
   
-def get_setup_event_modal_details_fields_test() -> list:
-  return [
+def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
+  blocks = [
     {
       "type": "input",
       "block_id": "event_duration_select",
@@ -209,7 +224,7 @@ def get_setup_event_modal_details_fields_test() -> list:
           "text": "Enter event duration in minutes"
         },
         "min_value": "10",
-        "max_value": "300"
+        "max_value": "300",
       },
       "label": {
         "type": "plain_text",
@@ -232,11 +247,105 @@ def get_setup_event_modal_details_fields_test() -> list:
         "text": "Event information to share"
       }
     },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Add test",
+          },
+          "style": "primary",
+          "action_id": "click_add_test"
+        }
+      ]
+    },
+    {
+      "type": "divider",
+    }
+  ]
+
+  if len(event.configs) == 0:
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*_No tests yet_*"
+      }
+    })
+    return blocks
+  
+  for test in event.configs:
+    blocks += get_test_fields(test)
+
+  return blocks
+
+def get_test_info(test: TestConfig):
+  return f"*Test type:* _{test_types_str[test.type]}_" # TODO: more info
+
+def get_test_fields(test: TestConfig):
+  return [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": get_test_info(test)
+      }
+    },
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Edit",
+					},
+					"value": test.hash,
+					"action_id": "click_edit_test"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Remove",
+					},
+          "style": "danger",
+					"value": test.hash,
+					"action_id": "click_remove_test"
+				},
+			]
+		},
+    {
+      "type": "divider",
+    },
   ]
 
 
 # view processing
+def update_modal_event_setup_test_config(user_id: str, test: TestConfig, client: WebClient):
+  if test is None:
+    return
+  
+  event_data = get_event_in_process(user_id)
+  event = event_data[1]
+  if event is None:
+    raise Exception(f"no event for user {user_id}")
+  
+  if event.type != E_TEST:
+    raise Exception(f"event for user {user_id} is of type: {event_types_to_code(event.type)}")
+  
+  test_event: TestEvent = event
+  test_event.configs.append(test)
+
+  client.views_update(
+      view_id=event_data[0],
+      view=get_setup_event_modal(event)
+  )
+
 def modal_event_setup_callback(context, ack: Ack, body, client, logger):
+  user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
   is_first_setup_view = len(body["view"].get("private_metadata")) == 0
   
@@ -248,15 +357,22 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   
   logger.info(f"got basic event data: {event_name}, {event_type_code} - {event_type}, {event_datetime_stamp} - {event_datetime}")
 
-  event = get_event(0, event_type, event_name, event_datetime)
+  event: Event = None
 
-  # logger.info(f"sfjsdfshd {body} - [{body['view'].get('private_metadata')}]")
   if is_first_setup_view:
+    event = get_event(0, event_type, event_name, event_datetime)
     ack(response_action="update", view=get_setup_event_modal(event))
+    add_event_in_process(user_id, body["view"]["id"], event)
     return
   else:
+    # TODO: validate event here
+    # ack(response_action="errors", errors={"event_name_input":"You are loh"})
     ack(response_action="clear")
-  # ack(response_action="errors", errors={"event_name_input":"You are loh"})
+    event_data = pop_event_in_process(user_id)
+    event = event_data[1]
+    # update event info from modal
+    event.name = event_name
+    event.start_time = event_datetime
   
   # set event details and add event
   logic: AppLogic = context["logic"]
@@ -298,4 +414,3 @@ def set_event_details_test(event: TestEvent, modal_values: dict):
   event_info_str = json.dumps(event_info)
 
   logger.info(f"got test details: {event_duration}, {event_info_str}")
-  

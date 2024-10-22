@@ -1,4 +1,5 @@
 from .tools import *
+from .test_config import *
 
 # event_types
 E_INVALID = 0
@@ -9,6 +10,7 @@ event_types = [E_RESOURCES, E_CLASS, E_TEST]
 event_types_str = {E_RESOURCES: "resources", E_CLASS: "class", E_TEST: "test"}
 event_types_to_code = {E_RESOURCES: "e_resources", E_CLASS: "e_class", E_TEST: "e_test"}
 event_types_from_code = {"e_resources": E_RESOURCES, "e_class": E_CLASS, "e_test": E_TEST}
+
 
 class Event():
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict = None):
@@ -75,9 +77,24 @@ class TestEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
     self.info: str = None
     self.duration_m: int = None
-    self.config: dict = None
+    self.configs: dict[str, TestConfig] = []
     super().__init__(id, name, start_time, details)
     self.type = E_TEST
+
+  def from_dict_details(self, details: dict):
+    self.info = details["info"]
+    self.duration_m = details["duration_m"]
+    self.configs = {}
+    for config in details["configs"]:
+      test = get_test_config(config)
+      self.configs[test.hash] = test
+
+  def to_dict_details(self) -> dict:
+    return {
+      "info": self.info,
+      "duration_m": self.duration_m,
+      "configs": [config.to_dict() for config in self.configs.values()],
+    }
 
 
 def get_event(id: int, type: int, name: str, start_time: datetime.datetime, details: dict = None):
