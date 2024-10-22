@@ -17,6 +17,9 @@ class TestConfig:
     self.question = question
     self.hash: str = ""
 
+  def validate():
+    return "invalid class"
+
   def calc_hash(self) -> str:
     pass
 
@@ -37,13 +40,16 @@ class TestConfigSignle(TestConfig):
     self.type = T_SINGLE
 
     if data is not None:
-      self.anses = data.get("anses")
+      self.anses = data.get("anses", [])
     else:
-      if len(anses) < 3:
-        raise Exception("incorrect ans lenght")
+      # if len(anses) < 3:
+      #   raise Exception("incorrect ans lenght")
       self.anses = anses
 
     self.hash = self.calc_hash()
+
+  def validate(self):
+    return "need 3 variants" if len(self.anses) < 3 else None
 
   def calc_hash(self):
     return hashlib.sha256(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
@@ -60,17 +66,20 @@ class TestConfigMulti(TestConfig):
     self.type = T_MULTI
 
     if data is not None:
-      self.correct = data.get("correct")
-      self.others = data.get("others")
+      self.correct = data.get("correct", [])
+      self.others = data.get("others", [])
     else:
-      if len(correct) < 2:
-        raise Exception("incorrect correct lenght")
-      if len(others) < 2:
-        raise Exception("incorrect others lenght")
+      # if len(correct) < 2:
+      #   raise Exception("incorrect correct lenght")
+      # if len(others) < 2:
+      #   raise Exception("incorrect others lenght")
       self.correct = correct
       self.others = others
 
     self.hash = self.calc_hash()
+
+  def validate(self):
+    return "need atleast 2 correct variants" if len(self.correct) < 2 else "need atleast 2 incorrect variants" if len(self.others) < 2 else None
 
   def calc_hash(self):
     return hashlib.sha256(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
@@ -103,6 +112,12 @@ class TestConfigMulti(TestConfig):
   # def calc_hash(self):
   #   return hashlib.sha256(f"{self.type}+{self.question}.encode('utf-8')").hexdigest()
 
+
+def init_test_config(type: int):
+  if type == T_SINGLE:
+    return TestConfigSignle("", [])
+  elif type == T_SINGLE:
+    return TestConfigMulti("", [])
 
 def get_test_config(data: dict) -> TestConfig:
   type = data["type"]

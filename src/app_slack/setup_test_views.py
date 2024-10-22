@@ -7,6 +7,19 @@ from slack_sdk import WebClient
 import json
 
 
+tests_in_process: dict[str, list[str, TestConfig]] = {} # [user_id, [view_id, TestConfig]]
+
+def get_test_in_process(user_id: str):
+  return tests_in_process.get(user_id)
+
+def pop_test_in_process(user_id: str):
+  data = tests_in_process.get(user_id)
+  tests_in_process.pop(user_id)
+  return data
+
+def add_test_in_process(user_id: str, view_id: str, test: TestConfig):
+  tests_in_process[user_id] = [view_id, test]
+
 def handle_add_test(client: WebClient, ack: Ack, body, logger):
   ack()#response_action="push", view=get_setup_test_modal())
   client.views_push(
@@ -96,72 +109,138 @@ def get_setup_test_modal(test: TestConfig=None):
   }
 
   blocks = [
-    # get_test_type_field(test),
-    # {
-    #   "type": "input",
-    #   "block_id": "test_question_select",
-    #   "element": {
-    #     "type": "rich_text_input",
-    #     "action_id": "test_question",
-    #     "placeholder": {
-    #       "type": "plain_text",
-    #       "text": "Question"
-    #     },
-    #   },
-    #   "label": {
-    #     "type": "plain_text",
-    #     "text": "Enter question for your test"
-    #   }
-    # },
+    get_test_type_field(test),
   ]
   
-  # if test is not None:
-  #   blocks[0]["element"]["initial_value"] = test.name
-  #   # blocks[1]["element"]["initial_option"] = get_test_type_option(test.type)
-  #   if test.start_time is not None:
-  #     blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(test.start_time))
+  if test is not None:
+    blocks += [{
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": get_test_description(test)
+        }
+      },
+      {
+        "type": "input",
+        "block_id": "test_question_select",
+        "element": {
+          "type": "plain_text_input",
+          "action_id": "test_question",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Test question"
+          },
+          "min_length": 1,
+        },
+        "label": {
+          "type": "plain_text",
+          "text": "Enter test question"
+        }
+      },
+      {
+        "type": "divider"
+      }
+    ]
     
-  #   blocks += get_setup_test_modal_details_fields(test)
+    blocks += get_setup_test_modal_details_fields(test)
 
-  # if test is not None:
-  #   modal["private_metadata"] = test_types_to_code[test.type]
+  if test is not None:
+    modal["private_metadata"] = test_types_to_code[test.type]
 
   modal["blocks"] = blocks
 
   return modal
 
-# def get_setup_event_modal_details_fields(event: Event) -> list:
-#   if event is None:
-#     return []
-#   elif event.type == E_RESOURCES:
-#     return get_setup_event_modal_details_fields_resources()
-#   elif event.type == E_CLASS:
-#     return get_setup_event_modal_details_fields_class()
-#   elif event.type == E_TEST:
-#     return get_setup_event_modal_details_fields_test(event)
+def get_test_description(test: TestConfig):
+  if test.type == T_SINGLE:
+    return f"Add at least 3 variants, first must be correct. Variants will be shufled for learners."
+  elif test.type == T_MULTI:
+    return f"Add at least 5 variants, 2 - correct, 3 - incorrect. Variants will be shufled for learners."
+  # elif test.type == T_COMPLIANCE:
+    # return f""
+  return ""
+
+def get_setup_test_modal_details_fields(test: TestConfig) -> list:
+  if test is None:
+    return []
+  elif test.type == T_SINGLE:
+    return get_setup_test_modal_details_fields_single(test)
+  elif test.type == T_MULTI:
+    return get_setup_test_modal_details_fields_multi(test)
+  # elif test.type == T_COMPLIANCE:
+    # return get_setup_test_modal_details_fields_compliance(test)
   
-# def get_setup_event_modal_details_fields_resources() -> list:
-#   return [
-#     {
-#       "type": "input",
-#       "block_id": "event_info_select",
-#       "element": {
-#         "type": "rich_text_input",
-#         "action_id": "event_info",
-#         "placeholder": {
-#           "type": "plain_text",
-#           "text": "Enter info you want share on this event"
-#         },
-#       },
-#       "label": {
-#         "type": "plain_text",
-#         "text": "Event information to share"
-#       }
-#     },
-#   ]
+def get_setup_test_modal_details_fields_single(test: TestConfigSignle) -> list:
+  blocks = [
+    {
+      "type": "input",
+      "block_id": "test_variant_select",
+      "optional": True,
+      "label": {
+        "type": "plain_text",
+        "text": "Enter test variant"
+      },
+      "element": {
+        "type": "plain_text_input",
+        "action_id": "test_variant",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Test variant"
+        },
+        "min_length": 1,
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Add",
+          },
+          "action_id": "click_add_single_variant"
+        },
+      ]
+    },
+    {
+      "type": "divider"
+    },
+  ]
+
+  if len(test.anses) == 0:
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*_No variants yet_*"
+      }
+    })
+    return blocks
   
-# def get_setup_event_modal_details_fields_class() -> list:
-#   return [
+  for i in range(len(test.anses)):
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"- {test.anses[i]} {'(correct)' if i == 0 else ''}"
+      },
+      "accessory": {
+        "type": "button",
+        "style": "danger",
+        "text": {
+          "type": "plain_text",
+          "text": "Remove",
+        },
+        "value": f"{i}",
+        "action_id": "click_remove_single_variant"
+      }
+    })
+
+  return blocks
+  
+def get_setup_test_modal_details_fields_multi(test: TestConfig) -> list:
+  return [
 #     {
 #       "type": "input",
 #       "block_id": "event_duration_select",
@@ -197,10 +276,10 @@ def get_setup_test_modal(test: TestConfig=None):
 #         "text": "Event information to share"
 #       }
 #     },
-#   ]
+  ]
   
-# def get_setup_event_modal_details_fields_test(event: Event) -> list:
-#   return [
+def get_setup_test_modal_details_fields_test(test: TestConfig) -> list:
+  return [
 #     {
 #       "type": "input",
 #       "block_id": "event_duration_select",
@@ -250,46 +329,73 @@ def get_setup_test_modal(test: TestConfig=None):
 #         }
 #       ]
 #     },
-#   ]
+  ]
 
 
 # view processing
-def modal_test_setup_callback(context, ack: Ack, body, client, logger):
+def handle_add_signle_variant(ack: Ack, body, client, logger):
   ack()
+  user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
-  logger.info(f"got values {body['view']}")
 
-  test: TestConfig = TestConfigSignle("sdfsaf", ["1", "2", "3"])
-
-  update_modal_event_setup_test_config(body["user"]["id"], test, client)
+  test_data = get_test_in_process(user_id)
+  test: TestConfigSignle = test_data[1]
+  test.anses.append(modal_values["test_variant_select"]["test_variant"]["value"])
   
-#   is_first_setup_view = len(body["view"].get("private_metadata")) == 0
-  
-#   event_name = modal_values["event_name_input"]["event_name"]["value"]
-#   event_type_code = modal_values["event_type_select"]["event_type"]["selected_option"]["value"] if is_first_setup_view else body["view"].get("private_metadata")
-#   event_type = event_types_from_code[event_type_code]
-#   event_datetime_stamp = modal_values["event_datetime_select"]["event_datetime"]["selected_date_time"]
-#   event_datetime = datetime.datetime.fromtimestamp(event_datetime_stamp)
-  
-#   logger.info(f"got basic event data: {event_name}, {event_type_code} - {event_type}, {event_datetime_stamp} - {event_datetime}")
+  client.views_update(
+      view_id=test_data[0],
+      view=get_setup_test_modal(test)
+  )
 
-#   event = get_event(0, event_type, event_name, event_datetime)
+def handle_remove_signle_variant(ack: Ack, body, client, logger):
+  ack()
+  user_id = body["user"]["id"]
 
-#   # logger.info(f"sfjsdfshd {body} - [{body['view'].get('private_metadata')}]")
-#   if is_first_setup_view:
-#     ack(response_action="update", view=get_setup_event_modal(event))
-#     return
-#   else:
-#     ack(response_action="clear")
-#   # ack(response_action="errors", errors={"event_name_input":"You are loh"})
+  test_data = get_test_in_process(user_id)
+  test: TestConfigSignle = test_data[1]
+  test.anses.pop(int(body["actions"][0]["value"]))
+  
+  client.views_update(
+      view_id=test_data[0],
+      view=get_setup_test_modal(test)
+  )
+
+def modal_test_setup_callback(context, ack: Ack, body, client, logger):
+  user_id = body["user"]["id"]
+  modal_values = body["view"]["state"]["values"]
+  is_first_setup_view = len(body["view"].get("private_metadata")) == 0
+  
+  test_type_code = modal_values["test_type_select"]["test_type"]["selected_option"]["value"] if is_first_setup_view else body["view"].get("private_metadata")
+  test_type = test_types_from_code[test_type_code]
+
+  test: TestConfig = None
+
+  if is_first_setup_view:
+    test = init_test_config(test_type)
+    ack(response_action="update", view=get_setup_test_modal(test))
+    add_test_in_process(user_id, body["view"]["id"], test)
+    return
+  else:
+    test_data = get_test_in_process(user_id)
+    test = test_data[1]
+
+    # update test info from modal
+    # event.name = event_name
+
+    valid_error = test.validate()
+    if valid_error:
+      ack(response_action="errors", errors={"test_question_select": valid_error})
+      return
+    
+    ack()
+    pop_test_in_process(user_id)
+    return
   
 #   # set event details and add event
 #   logic: AppLogic = context["logic"]
 #   set_event_details(event, modal_values)
-#   add_new_event(event, logic)
 
-# def add_new_event(event: Event, logic: AppLogic):
-#   logic.update_events([event])
+  update_modal_event_setup_test_config(body["user"]["id"], test, client)
 
 # def set_event_details(event: Event, modal_values: dict):
 #   if event.type == E_RESOURCES:
