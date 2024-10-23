@@ -266,7 +266,7 @@ def get_test_info(test: TestConfig):
   if test.type == T_SINGLE:
     return f"*Test type:* _{test_types_str[test.type]}_\n*Question:* {test.question}\n*Variants amount:* {len(test.variants)}"
   elif test.type == T_MULTI:
-    return f"*Test type:* _{test_types_str[test.type]}_" # TODO
+    return f"*Test type:* _{test_types_str[test.type]}_\n*Question:* {test.question}\n*Correct amount:* {len(test.correct)}; *Incorrect amount:* {len(test.incorrect)}"
   # elif test.type == T_COMPLIANCE:
     # return f"*Test type:* _{test_types_str[test.type]}_"
   return f"*Test type:* _{test_types_str[test.type]}_"

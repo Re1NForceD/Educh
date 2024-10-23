@@ -249,96 +249,108 @@ def get_setup_test_modal_details_fields_single(test: TestConfigSignle, need_clea
 
   return blocks
   
-def get_setup_test_modal_details_fields_multi(test: TestConfig, need_clean_up: bool = False) -> list:
-  return [
-#     {
-#       "type": "input",
-#       "block_id": "event_duration_select",
-#       "element": {
-#         "type": "number_input",
-#         "is_decimal_allowed": False,
-#         "action_id": "event_duration",
-#         "placeholder": {
-#           "type": "plain_text",
-#           "text": "Enter event duration in minutes"
-#         },
-#         "min_value": "10",
-#         "max_value": "300"
-#       },
-#       "label": {
-#         "type": "plain_text",
-#         "text": "Event duration (minutes)"
-#       }
-#     },
-#     {
-#       "type": "input",
-#       "block_id": "event_info_select",
-#       "element": {
-#         "type": "rich_text_input",
-#         "action_id": "event_info",
-#         "placeholder": {
-#           "type": "plain_text",
-#           "text": "Enter info you want share on this event"
-#         },
-#       },
-#       "label": {
-#         "type": "plain_text",
-#         "text": "Event information to share"
-#       }
-#     },
+def get_setup_test_modal_details_fields_multi(test: TestConfigMulti, need_clean_up: bool = False) -> list:
+  blocks = [
+    {
+      "type": "input",
+      "block_id": "test_variant_select",
+      "optional": True,
+      "label": {
+        "type": "plain_text",
+        "text": "Enter test variant"
+      },
+      "element": {
+        "type": "plain_text_input",
+        "action_id": "test_variant",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Test variant"
+        },
+        "min_length": 1,
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Add correct",
+          },
+          "action_id": "click_add_multiple_variant_correct"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Add incorrect",
+          },
+          "action_id": "click_add_multiple_variant_incorrect"
+        },
+      ]
+    },
+    {
+      "type": "divider"
+    },
   ]
+
+  if need_clean_up:
+    blocks[0]["element"]["initial_value"] = ""
+
+  if len(test.correct) == 0 and len(test.incorrect) == 0:
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*_No variants yet_*"
+      }
+    })
+    return blocks
+  
+  for var_hash in test.correct:
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"- {test.correct[var_hash]} (correct)"
+      },
+      "accessory": {
+        "type": "button",
+        "style": "danger",
+        "text": {
+          "type": "plain_text",
+          "text": "Remove",
+        },
+        "value": var_hash,
+        "action_id": "click_remove_multi_variant"
+      }
+    })
+  
+  for var_hash in test.incorrect:
+    blocks.append({
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"- {test.incorrect[var_hash]}"
+      },
+      "accessory": {
+        "type": "button",
+        "style": "danger",
+        "text": {
+          "type": "plain_text",
+          "text": "Remove",
+        },
+        "value": var_hash,
+        "action_id": "click_remove_multi_variant"
+      }
+    })
+
+  return blocks
   
 def get_setup_test_modal_details_fields_test(test: TestConfig) -> list:
   return [
-#     {
-#       "type": "input",
-#       "block_id": "event_duration_select",
-#       "element": {
-#         "type": "number_input",
-#         "is_decimal_allowed": False,
-#         "action_id": "event_duration",
-#         "placeholder": {
-#           "type": "plain_text",
-#           "text": "Enter event duration in minutes"
-#         },
-#         "min_value": "10",
-#         "max_value": "300"
-#       },
-#       "label": {
-#         "type": "plain_text",
-#         "text": "Event duration (minutes)"
-#       }
-#     },
-#     {
-#       "type": "input",
-#       "block_id": "event_info_select",
-#       "element": {
-#         "type": "rich_text_input",
-#         "action_id": "event_info",
-#         "placeholder": {
-#           "type": "plain_text",
-#           "text": "Enter info you want share on this event"
-#         },
-#       },
-#       "label": {
-#         "type": "plain_text",
-#         "text": "Event information to share"
-#       }
-#     },
-#     {
-#       "type": "actions",
-#       "elements": [
-#         {
-#           "type": "button",
-#           "text": {
-#             "type": "plain_text",
-#             "text": "Add test",
-#           },
-#           "value": "click_add_test",
-#           "action_id": "click_add_test"
-#         }
-#       ]
-#     },
+    # TODO
   ]
 
 
@@ -363,6 +375,47 @@ def handle_remove_signle_variant(ack: Ack, body, client, logger):
 
   test_data = get_test_in_process(user_id)
   test: TestConfigSignle = test_data[1]
+  test.remove_variant(body["actions"][0]["value"])
+  
+  client.views_update(
+      view_id=test_data[0],
+      view=get_setup_test_modal(test)
+  )
+
+def handle_add_multi_variant_correct(ack: Ack, body, client, logger):
+  ack()
+  user_id = body["user"]["id"]
+  modal_values = body["view"]["state"]["values"]
+
+  test_data = get_test_in_process(user_id)
+  test: TestConfigMulti = test_data[1]
+  test.add_correct(modal_values["test_variant_select"]["test_variant"]["value"])
+  
+  client.views_update(
+      view_id=test_data[0],
+      view=get_setup_test_modal(test, True)
+  )
+
+def handle_add_multi_variant_incorrect(ack: Ack, body, client, logger):
+  ack()
+  user_id = body["user"]["id"]
+  modal_values = body["view"]["state"]["values"]
+
+  test_data = get_test_in_process(user_id)
+  test: TestConfigMulti = test_data[1]
+  test.add_incorrect(modal_values["test_variant_select"]["test_variant"]["value"])
+  
+  client.views_update(
+      view_id=test_data[0],
+      view=get_setup_test_modal(test, True)
+  )
+
+def handle_remove_multi_variant(ack: Ack, body, client, logger):
+  ack()
+  user_id = body["user"]["id"]
+
+  test_data = get_test_in_process(user_id)
+  test: TestConfigMulti = test_data[1]
   test.remove_variant(body["actions"][0]["value"])
   
   client.views_update(
@@ -401,36 +454,3 @@ def modal_test_setup_callback(context, ack: Ack, body, client, logger):
     pop_test_in_process(user_id)
   
   update_modal_event_setup_test_config(body["user"]["id"], test, client)
-
-# def set_event_details(event: Event, modal_values: dict):
-#   if event.type == E_RESOURCES:
-#     set_event_details_resources(event, modal_values)
-#   elif event.type == E_CLASS:
-#     set_event_details_class(event, modal_values)
-#   elif event.type == E_TEST:
-#     set_event_details_test(event, modal_values)
-
-# def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
-#   event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-#   event_info_str = json.dumps(event_info)
-
-#   logger.info(f"got resources details: {event_info_str}")
-
-#   event.info = event_info_str
-
-# def set_event_details_class(event: ClassEvent, modal_values: dict):
-#   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-#   event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-#   event_info_str = json.dumps(event_info)
-
-#   logger.info(f"got class details: {event_duration}, {event_info_str}")
-
-#   event.info = event_info_str
-#   event.duration_m = event_duration
-
-# def set_event_details_test(event: TestEvent, modal_values: dict):
-#   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-#   event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-#   event_info_str = json.dumps(event_info)
-
-#   logger.info(f"got test details: {event_duration}, {event_info_str}")
