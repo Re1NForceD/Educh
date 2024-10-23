@@ -35,28 +35,54 @@ class TestConfig:
     }
 
 class TestConfigSignle(TestConfig):
-  def __init__(self, question: str, anses: list[str]=None, data: dict=None):
+  def __init__(self, question: str, variants: list[str]=None, data: dict=None):
+    self.variants: dict[str, str] = {}
+    self.ans_hash: str = ""
     super().__init__(question)
     self.type = T_SINGLE
 
     if data is not None:
-      self.anses = data.get("anses", [])
+      self.set_variants(data.get("variants", []))
     else:
-      # if len(anses) < 3:
-      #   raise Exception("incorrect ans lenght")
-      self.anses = anses
+      self.set_variants(variants)
 
     self.hash = self.calc_hash()
 
+  def set_variants(self, variants: list[str]):
+    self.variants: dict[str, str] = {}
+    self.ans_hash: str = ""
+
+    if len(variants) == 0:
+      return
+    
+    self.ans_hash = hashlib.sha256(variants[0].encode('utf-8')).hexdigest()
+    for var in variants:
+      self.variants[hashlib.sha256(var.encode('utf-8')).hexdigest()] = var
+
+  def add_variant(self, variant: str):
+    var_hash = hashlib.sha256(variant.encode('utf-8')).hexdigest()
+    if len(self.variants) == 0:
+      self.ans_hash = var_hash
+    
+    self.variants[var_hash] = variant
+
+  def remove_variant(self, var_hash: str):
+    self.variants.pop(var_hash)
+    if self.ans_hash == var_hash:
+      self.ans_hash = next(iter(self.variants))
+
+  def get_result(self, var_hash: str):
+    return 1 if self.ans_hash == var_hash else 0
+
   def validate(self):
-    return "need 3 variants" if len(self.anses) < 3 else None
+    return "need 3 variants" if len(self.variants) < 3 else None
 
   def calc_hash(self):
     return hashlib.sha256(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
 
   def to_dict_details(self) -> dict:
     return {
-      "anses": self.anses,
+      "variants": self.variants,
     }
 
 

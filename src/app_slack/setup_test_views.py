@@ -90,7 +90,7 @@ def get_test_type_field(test: TestConfig):
       }
     }
 
-def get_setup_test_modal(test: TestConfig=None):
+def get_setup_test_modal(test: TestConfig=None, need_clean_up: bool = False):
   modal = {
     "type": "modal",
     "callback_id": "view_test_setup",
@@ -142,7 +142,7 @@ def get_setup_test_modal(test: TestConfig=None):
       }
     ]
     
-    blocks += get_setup_test_modal_details_fields(test)
+    blocks += get_setup_test_modal_details_fields(test, need_clean_up)
 
   if test is not None:
     modal["private_metadata"] = test_types_to_code[test.type]
@@ -160,17 +160,17 @@ def get_test_description(test: TestConfig):
     # return f""
   return ""
 
-def get_setup_test_modal_details_fields(test: TestConfig) -> list:
+def get_setup_test_modal_details_fields(test: TestConfig, need_clean_up: bool = False) -> list:
   if test is None:
     return []
   elif test.type == T_SINGLE:
-    return get_setup_test_modal_details_fields_single(test)
+    return get_setup_test_modal_details_fields_single(test, need_clean_up)
   elif test.type == T_MULTI:
-    return get_setup_test_modal_details_fields_multi(test)
+    return get_setup_test_modal_details_fields_multi(test, need_clean_up)
   # elif test.type == T_COMPLIANCE:
     # return get_setup_test_modal_details_fields_compliance(test)
   
-def get_setup_test_modal_details_fields_single(test: TestConfigSignle) -> list:
+def get_setup_test_modal_details_fields_single(test: TestConfigSignle, need_clean_up: bool = False) -> list:
   blocks = [
     {
       "type": "input",
@@ -208,7 +208,10 @@ def get_setup_test_modal_details_fields_single(test: TestConfigSignle) -> list:
     },
   ]
 
-  if len(test.anses) == 0:
+  if need_clean_up:
+    blocks[0]["element"]["initial_value"] = ""
+
+  if len(test.variants) == 0:
     blocks.append({
       "type": "section",
       "text": {
@@ -218,12 +221,12 @@ def get_setup_test_modal_details_fields_single(test: TestConfigSignle) -> list:
     })
     return blocks
   
-  for i in range(len(test.anses)):
+  for var_hash in test.variants:
     blocks.append({
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"- {test.anses[i]} {'(correct)' if i == 0 else ''}"
+        "text": f"- {test.variants[var_hash]} {'(correct)' if test.get_result(var_hash) else ''}"
       },
       "accessory": {
         "type": "button",
@@ -232,14 +235,14 @@ def get_setup_test_modal_details_fields_single(test: TestConfigSignle) -> list:
           "type": "plain_text",
           "text": "Remove",
         },
-        "value": f"{i}",
+        "value": var_hash,
         "action_id": "click_remove_single_variant"
       }
     })
 
   return blocks
   
-def get_setup_test_modal_details_fields_multi(test: TestConfig) -> list:
+def get_setup_test_modal_details_fields_multi(test: TestConfig, need_clean_up: bool = False) -> list:
   return [
 #     {
 #       "type": "input",
@@ -340,11 +343,11 @@ def handle_add_signle_variant(ack: Ack, body, client, logger):
 
   test_data = get_test_in_process(user_id)
   test: TestConfigSignle = test_data[1]
-  test.anses.append(modal_values["test_variant_select"]["test_variant"]["value"])
+  test.add_variant(modal_values["test_variant_select"]["test_variant"]["value"])
   
   client.views_update(
       view_id=test_data[0],
-      view=get_setup_test_modal(test)
+      view=get_setup_test_modal(test, True)
   )
 
 def handle_remove_signle_variant(ack: Ack, body, client, logger):
@@ -353,7 +356,7 @@ def handle_remove_signle_variant(ack: Ack, body, client, logger):
 
   test_data = get_test_in_process(user_id)
   test: TestConfigSignle = test_data[1]
-  test.anses.pop(int(body["actions"][0]["value"]))
+  test.remove_variant(body["actions"][0]["value"])
   
   client.views_update(
       view_id=test_data[0],
