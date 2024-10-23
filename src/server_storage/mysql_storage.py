@@ -2,6 +2,7 @@ import os
 import bcrypt
 import logging
 import mysql.connector
+import json
 from mysql.connector import Error
 
 from .storage import *
@@ -75,13 +76,14 @@ class MySQLStorage(DataStorage):
     return rows[0][1]
   
   def get_event(self, db_row) -> Event:
-    event = get_event(id=db_row[0], type=db_row[1], name=db_row[2], start_time=db_row[3])
+    event = get_event(id=db_row[0], type=db_row[1], name=db_row[2], start_time=db_row[3], info=db_row[4])
     if event.type == E_RESOURCES: # cols: 4
-      event.info = db_row[4]
+      pass
     elif event.type == E_CLASS: # cols: 5
       event.duration_m = db_row[5]
-    elif event.type == E_TEST: # cols: 6
+    elif event.type == E_TEST: # cols: 6, 7
       event.duration_m = db_row[6]
+      event.from_dict_configs(json.loads(db_row[7]))
     return event
   
   def get_course_data(self, course_id: int) -> Course:
@@ -96,7 +98,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], start_date=general_info[0][3])
     
     events = self.exec_select(
-        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, cerd.info, cecd.duration_m, cetd.duration_m from course_event ce left outer join course_event_details_resources cerd on ce.id = cerd.event_id left outer join course_event_details_class cecd on ce.id = cecd.event_id left outer join course_event_details_test cetd on ce.id = cetd.event_id where course_id = {course_id}")
+        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, ce.info, cedc.duration_m, cedt.duration_m, cedt.configs from course_event ce left outer join course_event_details_resources cerd on ce.id = cerd.event_id left outer join course_event_details_class cedc on ce.id = cedc.event_id left outer join course_event_details_test cedt on ce.id = cedt.event_id where course_id = {course_id}")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
@@ -132,13 +134,13 @@ class MySQLStorage(DataStorage):
     cnx.commit()
 
   def insert_event_details_resources(self, cnx, event: ResourcesEvent):
-    self.exec_insert(cnx, f"insert into course_event_details_resources (event_id, info) values({event.id}, '{event.info}')")
+    self.exec_insert(cnx, f"insert into course_event_details_resources (event_id) values({event.id})")
 
   def insert_event_details_class(self, cnx, event: ClassEvent):
-    self.exec_insert(cnx, f"insert into course_event_details_class (event_id, info, duration_m) values({event.id}, '{event.info}', {event.duration_m})")
+    self.exec_insert(cnx, f"insert into course_event_details_class (event_id, duration_m) values({event.id}, {event.duration_m})")
 
   def insert_event_details_test(self, cnx, event: TestEvent):
-    pass
+    self.exec_insert(cnx, f"insert into course_event_details_test (event_id, duration_m, configs) values({event.id}, {event.duration_m}, '{json.dumps(event.to_dict_configs())}')")
 
   def insert_event_details(self, cnx, event: Event):
     if event.type == E_RESOURCES:
@@ -149,7 +151,7 @@ class MySQLStorage(DataStorage):
       self.insert_event_details_test(cnx, event)
 
   def insert_event(self, cnx, course_id: int, event: Event):
-    event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}')")
+    event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time, info) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}', '{event.info}')")
     event.id = event_id
     self.insert_event_details(cnx, event)
 
@@ -160,18 +162,19 @@ class MySQLStorage(DataStorage):
     cnx.commit()
 
   def update_event_base(self, cnx, course_id: int, event: Event):
-    updated_rows = self.exec_update(cnx, f"update course_event set name='{event.name}', start_time='{datetime_to_str(event.start_time)}' where course_id={course_id} and id={event.id} and event_type_id={event.type}")
+    updated_rows = self.exec_update(cnx, f"update course_event set name='{event.name}', start_time='{datetime_to_str(event.start_time)}', info='{event.info}' where course_id={course_id} and id={event.id} and event_type_id={event.type}")
     if updated_rows != 1:
       logger.error(f"incorrect event update, updated rows: {updated_rows}, for event: {event.to_dict()}")
 
   def update_event_details_resources(self, cnx, event: ResourcesEvent):
-    return self.exec_insert(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
+    pass
+    # self.exec_insert(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
 
   def update_event_details_class(self, cnx, event: ClassEvent):
-    return self.exec_insert(cnx, f"update course_event_details_class set info='{event.info}', duration_m={event.duration_m} where event_id={event.id}")
+    self.exec_insert(cnx, f"update course_event_details_class set duration_m={event.duration_m} where event_id={event.id}")
 
   def update_event_details_test(self, cnx, event: TestEvent):
-    pass
+    self.exec_insert(cnx, f"update course_event_details_class set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
 
   def update_event_details(self, cnx, course_id: int, event: Event):
     if event.type == E_RESOURCES:

@@ -124,15 +124,7 @@ def get_setup_event_modal(event: Event=None):
         "text": "Event date",
       }
     },
-  ]
-  
-  if event is not None:
-    blocks[0]["element"]["initial_value"] = event.name
-    # blocks[1]["element"]["initial_option"] = get_event_type_option(event.type)
-    if event.start_time is not None:
-      blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
-    
-    blocks.append({
+    {
       "type": "input",
       "block_id": "event_info_select",
       "element": {
@@ -147,7 +139,15 @@ def get_setup_event_modal(event: Event=None):
         "type": "plain_text",
         "text": "Event information to share"
       }
-    })
+    },
+  ]
+  
+  if event is not None:
+    blocks[0]["element"]["initial_value"] = event.name
+    # blocks[1]["element"]["initial_option"] = get_event_type_option(event.type)
+    # if event.start_time is not None:
+    # blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
+    # blocks[3]["element"]["initial_value"] = event.info
 
     blocks += get_setup_event_modal_details_fields(event)
 
@@ -341,13 +341,15 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   event_type = event_types_from_code[event_type_code]
   event_datetime_stamp = modal_values["event_datetime_select"]["event_datetime"]["selected_date_time"]
   event_datetime = datetime.datetime.fromtimestamp(event_datetime_stamp)
+  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
+  event_info_str = json.dumps(event_info)
   
   logger.info(f"got basic event data: {event_name}, {event_type_code} - {event_type}, {event_datetime_stamp} - {event_datetime}")
 
   event: Event = None
 
   if is_first_setup_view:
-    event = get_event(0, event_type, event_name, event_datetime)
+    event = get_event(0, event_type, event_name, event_datetime, event_info_str)
     ack(response_action="update", view=get_setup_event_modal(event))
     add_event_in_process(user_id, body["view"]["id"], event)
     return
@@ -357,9 +359,11 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
     ack(response_action="clear")
     event_data = pop_event_in_process(user_id)
     event = event_data[1]
+
     # update event info from modal
     event.name = event_name
     event.start_time = event_datetime
+    event.info = event_info_str
   
   # set event details and add event
   logic: AppLogic = context["logic"]
@@ -378,29 +382,18 @@ def set_event_details(event: Event, modal_values: dict):
     set_event_details_test(event, modal_values)
 
 def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
-  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-  event_info_str = json.dumps(event_info)
-
-  logger.info(f"got resources details: {event_info_str}")
-
-  event.info = event_info_str
+  logger.info(f"got resources details: ")
 
 def set_event_details_class(event: ClassEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-  event_info_str = json.dumps(event_info)
 
-  logger.info(f"got class details: {event_duration}, {event_info_str}")
+  logger.info(f"got class details: {event_duration}")
 
-  event.info = event_info_str
   event.duration_m = event_duration
 
 def set_event_details_test(event: TestEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
-  event_info = modal_values["event_info_select"]["event_info"]["rich_text_value"]
-  event_info_str = json.dumps(event_info)
 
-  logger.info(f"got test details: {event_duration}, {event_info_str}")
+  logger.info(f"got test details: {event_duration}")
   
-  event.info = event_info_str
   event.duration_m = event_duration
