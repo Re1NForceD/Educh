@@ -5,20 +5,19 @@ from .setup_event_views import update_modal_event_setup_test_config, get_event_i
 from slack_bolt import Ack
 from slack_sdk import WebClient
 import json
+import copy
 
 
-tests_in_process: dict[str, list[str, TestConfig]] = {} # [user_id, [view_id, TestConfig]]
+tests_in_process: dict[str, list[str, TestConfig, TestConfig]] = {} # [user_id, [view_id, TestConfig, orig TestConfig]]
 
 def get_test_in_process(user_id: str):
   return tests_in_process.get(user_id)
 
 def pop_test_in_process(user_id: str):
-  data = tests_in_process.get(user_id)
-  tests_in_process.pop(user_id)
-  return data
+  return tests_in_process.pop(user_id, None)
 
-def add_test_in_process(user_id: str, view_id: str, test: TestConfig):
-  tests_in_process[user_id] = [view_id, test]
+def add_test_in_process(user_id: str, view_id: str, test: TestConfig, orig: TestConfig = None):
+  tests_in_process[user_id] = [view_id, test, orig]
 
 def handle_add_test(client: WebClient, ack: Ack, body, logger):
   ack()
@@ -28,17 +27,25 @@ def handle_add_test(client: WebClient, ack: Ack, body, logger):
   )
 
 def handle_edit_test(client: WebClient, ack: Ack, body, logger):
-    ack()
-    user_id = body["user"]["id"]
-    test_hash = body["actions"][0]["value"]
-    event_data = get_event_in_process(user_id)
-    event: TestEvent = event_data[1]
-    test: TestConfig = event.configs.get(test_hash)
-    resp = client.views_push(
-        trigger_id=body["trigger_id"],
-        view=get_setup_test_modal(test)
-    )
-    add_test_in_process(user_id, resp["view"]["id"], test)
+  ack()
+  user_id = body["user"]["id"]
+  test_hash = body["actions"][0]["value"]
+  event_data = get_event_in_process(user_id)
+  event: TestEvent = event_data[1]
+  test_orig: TestConfig = event.remove_config(test_hash)
+  test_copy: TestConfig = copy.deepcopy(test_orig)
+  resp = client.views_push(
+      trigger_id=body["trigger_id"],
+      view=get_setup_test_modal(test_copy)
+  )
+  add_test_in_process(user_id, resp["view"]["id"], test_copy, test_orig)
+
+def modal_test_closed_callback(client: WebClient, ack: Ack, body, logger):
+  ack()
+  user_id = body["user"]["id"]
+  test_data = pop_test_in_process(user_id)
+  if test_data is not None and test_data[2] is not None:
+    update_modal_event_setup_test_config(user_id, test_data[2], client)
 
 def test_type_options(ack):
   ack({"options": get_test_type_model()})
@@ -91,6 +98,7 @@ def get_setup_test_modal(test: TestConfig=None, need_clean_up: bool = False):
   modal = {
     "type": "modal",
     "callback_id": "view_test_setup",
+    "notify_on_close": True,
     "title": {
       "type": "plain_text",
       "text": "Setup test"

@@ -132,6 +132,23 @@ def get_setup_event_modal(event: Event=None):
     if event.start_time is not None:
       blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
     
+    blocks.append({
+      "type": "input",
+      "block_id": "event_info_select",
+      "element": {
+        "type": "rich_text_input",
+        "action_id": "event_info",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter info you want share on this event"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Event information to share"
+      }
+    })
+
     blocks += get_setup_event_modal_details_fields(event)
 
   if event is not None:
@@ -153,22 +170,6 @@ def get_setup_event_modal_details_fields(event: Event) -> list:
   
 def get_setup_event_modal_details_fields_resources() -> list:
   return [
-    {
-      "type": "input",
-      "block_id": "event_info_select",
-      "element": {
-        "type": "rich_text_input",
-        "action_id": "event_info",
-        "placeholder": {
-          "type": "plain_text",
-          "text": "Enter info you want share on this event"
-        },
-      },
-      "label": {
-        "type": "plain_text",
-        "text": "Event information to share"
-      }
-    },
   ]
   
 def get_setup_event_modal_details_fields_class() -> list:
@@ -192,22 +193,6 @@ def get_setup_event_modal_details_fields_class() -> list:
         "text": "Event duration (minutes)"
       }
     },
-    {
-      "type": "input",
-      "block_id": "event_info_select",
-      "element": {
-        "type": "rich_text_input",
-        "action_id": "event_info",
-        "placeholder": {
-          "type": "plain_text",
-          "text": "Enter info you want share on this event"
-        },
-      },
-      "label": {
-        "type": "plain_text",
-        "text": "Event information to share"
-      }
-    },
   ]
   
 def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
@@ -229,22 +214,6 @@ def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
       "label": {
         "type": "plain_text",
         "text": "Event duration (minutes)"
-      }
-    },
-    {
-      "type": "input",
-      "block_id": "event_info_select",
-      "element": {
-        "type": "rich_text_input",
-        "action_id": "event_info",
-        "placeholder": {
-          "type": "plain_text",
-          "text": "Enter info you want share on this event"
-        },
-      },
-      "label": {
-        "type": "plain_text",
-        "text": "Event information to share"
       }
     },
     {
@@ -320,7 +289,7 @@ def get_test_fields(test: TestConfig):
 						"type": "plain_text",
 						"text": "Edit",
 					},
-					"value": test.hash,
+					"value": test.calc_hash(),
 					"action_id": "click_edit_test"
 				},
 				{
@@ -330,7 +299,7 @@ def get_test_fields(test: TestConfig):
 						"text": "Remove",
 					},
           "style": "danger",
-					"value": test.hash,
+					"value": test.calc_hash(),
 					"action_id": "click_remove_test"
 				},
 			]
@@ -432,3 +401,6 @@ def set_event_details_test(event: TestEvent, modal_values: dict):
   event_info_str = json.dumps(event_info)
 
   logger.info(f"got test details: {event_duration}, {event_info_str}")
+  
+  event.info = event_info_str
+  event.duration_m = event_duration

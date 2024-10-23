@@ -15,7 +15,6 @@ class TestConfig:
   def __init__(self, question: str):
     self.type = T_INVALID
     self.question = question
-    self.hash: str = ""
 
   def validate():
     return "invalid class"
@@ -30,7 +29,6 @@ class TestConfig:
     return {
       "type": self.type,
       "question": self.question,
-      "hash": self.hash,
       "details": self.to_dict_details(),
     }
 
@@ -42,11 +40,10 @@ class TestConfigSignle(TestConfig):
     self.type = T_SINGLE
 
     if data is not None:
-      self.set_variants(data.get("variants", []))
+      self.variants = data.get("variants", {})
+      self.ans_hash = next(iter(self.variants))
     else:
       self.set_variants(variants)
-
-    self.hash = self.calc_hash()
 
   def set_variants(self, variants: list[str]):
     self.variants: dict[str, str] = {}
@@ -55,9 +52,9 @@ class TestConfigSignle(TestConfig):
     if len(variants) == 0:
       return
     
-    self.ans_hash = hashlib.md5(variants[0].encode('utf-8')).hexdigest()
     for var in variants:
       self.variants[hashlib.md5(var.encode('utf-8')).hexdigest()] = var
+    self.ans_hash = next(iter(self.variants))
 
   def add_variant(self, variant: str):
     var_hash = hashlib.md5(variant.encode('utf-8')).hexdigest()
@@ -82,6 +79,7 @@ class TestConfigSignle(TestConfig):
 
   def to_dict_details(self) -> dict:
     return {
+      "ans": self.ans_hash,
       "variants": self.variants,
     }
 
@@ -101,8 +99,6 @@ class TestConfigMulti(TestConfig):
       #   raise Exception("incorrect others lenght")
       self.correct = correct
       self.others = others
-
-    self.hash = self.calc_hash()
 
   def validate(self):
     return "need atleast 2 correct variants" if len(self.correct) < 2 else "need atleast 2 incorrect variants" if len(self.others) < 2 else None
@@ -132,8 +128,6 @@ class TestConfigMulti(TestConfig):
 #         raise Exception("incorrect others lenght")
 #       self.correct = correct
 #       self.others = others
-
-  #   self.hash = self.calc_hash()
 
   # def calc_hash(self):
   #   return hashlib.md5(f"{self.type}+{self.question}.encode('utf-8')").hexdigest()

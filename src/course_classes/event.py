@@ -87,7 +87,7 @@ class TestEvent(Event):
     self.configs: dict[str, TestConfig] = {}
     for config in details["configs"]:
       test = get_test_config(config)
-      self.configs[test.hash] = test
+      self.configs[test.calc_hash()] = test
 
   def to_dict_details(self) -> dict:
     return {
@@ -97,10 +97,10 @@ class TestEvent(Event):
     }
   
   def add_config(self, test: TestConfig):
-    self.configs[test.hash] = test
+    self.configs[test.calc_hash()] = test
   
   def remove_config(self, test_hash: str):
-    self.configs.pop(test_hash)
+    return self.configs.pop(test_hash)
 
 
 def get_event(id: int, type: int, name: str, start_time: datetime.datetime, details: dict = None):
