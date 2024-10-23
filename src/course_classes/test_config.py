@@ -55,12 +55,12 @@ class TestConfigSignle(TestConfig):
     if len(variants) == 0:
       return
     
-    self.ans_hash = hashlib.sha256(variants[0].encode('utf-8')).hexdigest()
+    self.ans_hash = hashlib.md5(variants[0].encode('utf-8')).hexdigest()
     for var in variants:
-      self.variants[hashlib.sha256(var.encode('utf-8')).hexdigest()] = var
+      self.variants[hashlib.md5(var.encode('utf-8')).hexdigest()] = var
 
   def add_variant(self, variant: str):
-    var_hash = hashlib.sha256(variant.encode('utf-8')).hexdigest()
+    var_hash = hashlib.md5(variant.encode('utf-8')).hexdigest()
     if len(self.variants) == 0:
       self.ans_hash = var_hash
     
@@ -78,7 +78,7 @@ class TestConfigSignle(TestConfig):
     return "need 3 variants" if len(self.variants) < 3 else None
 
   def calc_hash(self):
-    return hashlib.sha256(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
+    return hashlib.md5(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
 
   def to_dict_details(self) -> dict:
     return {
@@ -108,7 +108,7 @@ class TestConfigMulti(TestConfig):
     return "need atleast 2 correct variants" if len(self.correct) < 2 else "need atleast 2 incorrect variants" if len(self.others) < 2 else None
 
   def calc_hash(self):
-    return hashlib.sha256(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
+    return hashlib.md5(f"{self.type}+{self.question}".encode('utf-8')).hexdigest()
 
   def to_dict_details(self) -> dict:
     return {
@@ -136,7 +136,7 @@ class TestConfigMulti(TestConfig):
   #   self.hash = self.calc_hash()
 
   # def calc_hash(self):
-  #   return hashlib.sha256(f"{self.type}+{self.question}.encode('utf-8')").hexdigest()
+  #   return hashlib.md5(f"{self.type}+{self.question}.encode('utf-8')").hexdigest()
 
 
 def init_test_config(type: int):

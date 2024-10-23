@@ -21,7 +21,7 @@ def add_test_in_process(user_id: str, view_id: str, test: TestConfig):
   tests_in_process[user_id] = [view_id, test]
 
 def handle_add_test(client: WebClient, ack: Ack, body, logger):
-  ack()#response_action="push", view=get_setup_test_modal())
+  ack()
   client.views_push(
       trigger_id=body["trigger_id"],
       view=get_setup_test_modal()
@@ -32,16 +32,13 @@ def handle_edit_test(client: WebClient, ack: Ack, body, logger):
     user_id = body["user"]["id"]
     test_hash = body["actions"][0]["value"]
     event_data = get_event_in_process(user_id)
-    event = event_data[1]
-    logger.info(f"handle_edit_test {user_id} {event_types_to_code[event.type]} {test_hash}")
-
-def handle_remove_test(client: WebClient, ack: Ack, body, logger):
-    ack()
-    user_id = body["user"]["id"]
-    test_hash = body["actions"][0]["value"]
-    event_data = get_event_in_process(user_id)
-    event = event_data[1]
-    logger.info(f"handle_remove_test {user_id} {event_types_to_code[event.type]} {test_hash}")
+    event: TestEvent = event_data[1]
+    test: TestConfig = event.configs.get(test_hash)
+    resp = client.views_push(
+        trigger_id=body["trigger_id"],
+        view=get_setup_test_modal(test)
+    )
+    add_test_in_process(user_id, resp["view"]["id"], test)
 
 def test_type_options(ack):
   ack({"options": get_test_type_model()})
@@ -141,6 +138,8 @@ def get_setup_test_modal(test: TestConfig=None, need_clean_up: bool = False):
         "type": "divider"
       }
     ]
+
+    blocks[-2]["element"]["initial_value"] = test.question
     
     blocks += get_setup_test_modal_details_fields(test, need_clean_up)
 
@@ -383,7 +382,7 @@ def modal_test_setup_callback(context, ack: Ack, body, client, logger):
     test = test_data[1]
 
     # update test info from modal
-    # event.name = event_name
+    test.question = modal_values["test_question_select"]["test_question"]["value"]
 
     valid_error = test.validate()
     if valid_error:
@@ -392,12 +391,7 @@ def modal_test_setup_callback(context, ack: Ack, body, client, logger):
     
     ack()
     pop_test_in_process(user_id)
-    return
   
-#   # set event details and add event
-#   logic: AppLogic = context["logic"]
-#   set_event_details(event, modal_values)
-
   update_modal_event_setup_test_config(body["user"]["id"], test, client)
 
 # def set_event_details(event: Event, modal_values: dict):

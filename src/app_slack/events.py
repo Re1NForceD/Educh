@@ -2,7 +2,7 @@ from slack_sdk import WebClient
 
 from .home_views import *
 from .setup_event_views import *
-from .setup_test_views import handle_add_test, handle_remove_test, handle_edit_test, handle_add_signle_variant, handle_remove_signle_variant, test_type_options, modal_test_setup_callback
+from .setup_test_views import handle_add_test, handle_edit_test, handle_add_signle_variant, handle_remove_signle_variant, test_type_options, modal_test_setup_callback
 
 from app_logic_api import *
 

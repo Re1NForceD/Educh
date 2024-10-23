@@ -276,13 +276,31 @@ def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
     })
     return blocks
   
-  for test in event.configs:
+  for test in event.configs.values():
     blocks += get_test_fields(test)
 
   return blocks
 
+def handle_remove_test(client: WebClient, ack: Ack, body, logger):
+    ack()
+    user_id = body["user"]["id"]
+    test_hash = body["actions"][0]["value"]
+    event_data = get_event_in_process(user_id)
+    event: TestEvent = event_data[1]
+    event.remove_config(test_hash)
+    client.views_update(
+        view_id=event_data[0],
+        view=get_setup_event_modal(event)
+    )
+
 def get_test_info(test: TestConfig):
-  return f"*Test type:* _{test_types_str[test.type]}_" # TODO: more info
+  if test.type == T_SINGLE:
+    return f"*Test type:* _{test_types_str[test.type]}_\n*Question:* {test.question}\n*Variants amount:* {len(test.variants)}"
+  elif test.type == T_MULTI:
+    return f"*Test type:* _{test_types_str[test.type]}_" # TODO
+  # elif test.type == T_COMPLIANCE:
+    # return f"*Test type:* _{test_types_str[test.type]}_"
+  return f"*Test type:* _{test_types_str[test.type]}_"
 
 def get_test_fields(test: TestConfig):
   return [
@@ -337,7 +355,7 @@ def update_modal_event_setup_test_config(user_id: str, test: TestConfig, client:
     raise Exception(f"event for user {user_id} is of type: {event_types_to_code(event.type)}")
   
   test_event: TestEvent = event
-  test_event.configs.append(test)
+  test_event.add_config(test)
 
   client.views_update(
       view_id=event_data[0],

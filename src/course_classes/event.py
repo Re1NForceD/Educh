@@ -77,14 +77,14 @@ class TestEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, details: dict):
     self.info: str = None
     self.duration_m: int = None
-    self.configs: dict[str, TestConfig] = []
+    self.configs: dict[str, TestConfig] = {}
     super().__init__(id, name, start_time, details)
     self.type = E_TEST
 
   def from_dict_details(self, details: dict):
     self.info = details["info"]
     self.duration_m = details["duration_m"]
-    self.configs = {}
+    self.configs: dict[str, TestConfig] = {}
     for config in details["configs"]:
       test = get_test_config(config)
       self.configs[test.hash] = test
@@ -95,6 +95,12 @@ class TestEvent(Event):
       "duration_m": self.duration_m,
       "configs": [config.to_dict() for config in self.configs.values()],
     }
+  
+  def add_config(self, test: TestConfig):
+    self.configs[test.hash] = test
+  
+  def remove_config(self, test_hash: str):
+    self.configs.pop(test_hash)
 
 
 def get_event(id: int, type: int, name: str, start_time: datetime.datetime, details: dict = None):
