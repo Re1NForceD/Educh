@@ -16,7 +16,6 @@ class DataStorage():
   def validate_config(self, config: dict) -> bool:
     pass
 
-  """returns session key to use API and websocket"""
   def verify_app(self, course_id: int, key: str) -> str:
     pass
   
@@ -33,4 +32,7 @@ class DataStorage():
     pass
 
   def update_events(self, course_id: int, events: list[Event]):
+    pass
+
+  def remove_events(self, course_id: int, events: list[Event]):
     pass

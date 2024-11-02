@@ -193,3 +193,15 @@ class MySQLStorage(DataStorage):
     for event in events:
       self.update_event(cnx, course_id, event)
     cnx.commit()
+
+  def remove_event(self, cnx, course_id: int, event: Event):
+    deleted_rows_d = self.exec_update(cnx, f"delete from course_event_details_{event_types_str[event.type]} where event_id={event.id}")
+    deleted_rows_b = self.exec_update(cnx, f"delete from course_event where course_id={course_id} and id={event.id} and event_type_id={event.type}")
+    if deleted_rows_b != 1 or deleted_rows_d != 1:
+      logger.warning(f"When remove enent [{event.id} - {event_types_str[event.type]}] from course {course_id}, got removed {deleted_rows_b} & {deleted_rows_d}")
+
+  def remove_events(self, course_id: int, events: list[Event]):
+    cnx = self.get_cnx()
+    for event in events:
+      self.remove_event(cnx, course_id, event)
+    cnx.commit()

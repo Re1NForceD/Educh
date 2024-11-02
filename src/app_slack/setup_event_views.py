@@ -1,12 +1,15 @@
 from course_classes import *
 from app_logic_api import *
 
+from .home_views import update_home_views
+
 from slack_bolt import Ack
 from slack_sdk import WebClient
 import json
+import copy
 
 
-events_in_process: dict[str, list[str, Event]] = {} # [user_id, [view_id, Event]]
+events_in_process: dict[str, list[str, Event, Event]] = {} # [user_id, [view_id, Event]]
 
 def get_event_in_process(user_id: str):
   return events_in_process.get(user_id)
@@ -16,8 +19,8 @@ def pop_event_in_process(user_id: str):
   events_in_process.pop(user_id)
   return data
 
-def add_event_in_process(user_id: str, view_id: str, event: Event):
-  events_in_process[user_id] = [view_id, event]
+def add_event_in_process(user_id: str, view_id: str, event: Event, orig: Event=None):
+  events_in_process[user_id] = [view_id, event, orig]
 
 def handle_add_course(client, ack: Ack, body, logger):
   ack()
@@ -26,6 +29,40 @@ def handle_add_course(client, ack: Ack, body, logger):
       view=get_setup_event_modal()
   )
   add_event_in_process(body["user"]["id"], resp["view"]["id"], None)
+
+def handle_edit_event(context, client, ack: Ack, body, logger):
+  ack()
+  user_id = body["user"]["id"]
+  event_id = int(body["actions"][0]["value"])
+  logic: AppLogic = context["logic"]
+
+  event_orig: Event = logic.course.remove_event(event_id)
+  event_copy: Event = copy.deepcopy(event_orig)
+  resp = client.views_open(
+      trigger_id=body["trigger_id"],
+      view=get_setup_event_modal(event_copy, True)
+  )
+  add_event_in_process(user_id, resp["view"]["id"], event_copy, event_orig)
+
+def modal_event_closed_callback(context, client: WebClient, ack: Ack, body, logger):
+  ack()
+  user_id = body["user"]["id"]
+  logic: AppLogic = context["logic"]
+  event_data = pop_event_in_process(user_id)
+  if event_data is not None and event_data[2] is not None:
+    logic.course.add_event(event_data[2])
+    update_home_views(logic, client)
+
+def handle_remove_event(context, client, ack: Ack, body, logger):
+  ack()
+  user_id = body["user"]["id"]
+  event_id = int(body["actions"][0]["value"])
+  logic: AppLogic = context["logic"]
+
+  event_orig: Event = logic.course.remove_event(event_id)
+ 
+  logic.remove_events([event_orig])
+  update_home_views(logic, client)
 
 def event_type_options(ack):
   ack({"options": get_event_type_model()})
@@ -74,10 +111,11 @@ def get_event_type_field(event: Event):
       }
     }
 
-def get_setup_event_modal(event: Event=None):
+def get_setup_event_modal(event: Event=None, is_can_cancel: bool = False):
   modal = {
     "type": "modal",
     "callback_id": "view_event_setup",
+    "notify_on_close": is_can_cancel,
     "title": {
       "type": "plain_text",
       "text": "Setup event"
@@ -146,8 +184,8 @@ def get_setup_event_modal(event: Event=None):
     blocks[0]["element"]["initial_value"] = event.name
     # blocks[1]["element"]["initial_option"] = get_event_type_option(event.type)
     # if event.start_time is not None:
-    # blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
-    # blocks[3]["element"]["initial_value"] = event.info
+    blocks[2]["element"]["initial_date_time"] = int(datetime.datetime.timestamp(event.start_time))
+    blocks[3]["element"]["initial_value"] = json.loads(event.info)
 
     blocks += get_setup_event_modal_details_fields(event)
 
@@ -350,9 +388,12 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
 
   if is_first_setup_view:
     event = get_event(0, event_type, event_name, event_datetime, event_info_str)
-    ack(response_action="update", view=get_setup_event_modal(event))
-    add_event_in_process(user_id, body["view"]["id"], event)
-    return
+    if event.type == E_RESOURCES:
+      ack(response_action="clear")
+    else:
+      ack(response_action="update", view=get_setup_event_modal(event))
+      add_event_in_process(user_id, body["view"]["id"], event)
+      return
   else:
     # TODO: validate event here
     # ack(response_action="errors", errors={"event_name_input":"You are loh"})
@@ -368,10 +409,11 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   # set event details and add event
   logic: AppLogic = context["logic"]
   set_event_details(event, modal_values)
-  add_new_event(event, logic)
+  add_new_event(event, logic, client)
 
-def add_new_event(event: Event, logic: AppLogic):
+def add_new_event(event: Event, logic: AppLogic, client):
   logic.update_events([event])
+  update_home_views(logic, client)
 
 def set_event_details(event: Event, modal_values: dict):
   if event.type == E_RESOURCES:

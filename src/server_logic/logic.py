@@ -35,3 +35,6 @@ class Logic:
 
   def update_events(self, course_id: int, events: list[Event]):
     self._storage.update_events(course_id, events)
+
+  def remove_events(self, course_id: int, events: list[Event]):
+    self._storage.remove_events(course_id, events)

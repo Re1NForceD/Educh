@@ -49,8 +49,9 @@ class SlackApp:
     # if len(new_users) > 0:
     #   self.app.client.conversations_invite(channel=self.logic.course.channel_id, users=[user.platform_id for user in new_users], force=True)
     #   self.logic.update_users()
-    #   for user in new_users:
-    #     self.update_home_page(user)
+    
+    for user in self.logic.course.users.values():
+      self.update_home_page(user)
 
     if not self.logic.course.is_can_be_worked_with():
       raise Exception("course can not be worked with")

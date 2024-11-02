@@ -16,7 +16,7 @@ class Course:
       self.name = name
       self.channel_id = channel_id
       self.start_date: datetime.datetime = start_date
-      self.events: list[Event] = []
+      self.events: dict[int, Event] = {}
       self.users: dict[str, User] = {}
 
   def is_can_be_worked_with(self) -> bool:
@@ -34,8 +34,14 @@ class Course:
       return self.users[user_id]
     return None
 
+  def get_event(self, event_id: int):
+    return self.events.get(event_id, None)
+
   def add_event(self, event: Event):
-    self.events.append(event)
+    self.events[event.id] = event
+
+  def remove_event(self, event_id: int):
+    return self.events.pop(event_id, None)
 
   def is_teacher_user(self, user_id: str):
     return self.users[user_id].is_teacher()
@@ -62,7 +68,7 @@ class Course:
 
     if len(self.events):
       events = []
-      for event in self.events:
+      for event in self.events.values():
         events.append(event.to_dict())
       data["events"] = events
 
@@ -80,11 +86,11 @@ class Course:
     self.channel_id = data["channel_id"]
     self.start_date = datetime_from_str(data["start_date"])
 
-    self.events: list[Event] = []
+    self.events: dict[int, Event] = {}
     self.users: dict[str, User] = {}
 
     for event_data in data["events"]:
-      self.events.append(get_event_from_dict(event_data))
+      self.add_event(get_event_from_dict(event_data))
     
     for user_data in data["users"]:
       self.add_user(User(data=user_data))

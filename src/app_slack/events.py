@@ -54,6 +54,10 @@ def register_app_events(app, logic):
   app.action("click_add_event")(handle_add_course)
   app.view("view_event_setup")(modal_event_setup_callback)
   app.options("event_type")(event_type_options)
+  app.action("click_edit_event")(handle_edit_event)
+  app.view_closed("view_event_setup")(modal_event_closed_callback)
+  app.action("click_remove_event")(handle_remove_event)
+  # app.action("click_event_setup_finished") # TODO
 
   app.action("click_add_test")(handle_add_test)
   app.view("view_test_setup")(modal_test_setup_callback)
