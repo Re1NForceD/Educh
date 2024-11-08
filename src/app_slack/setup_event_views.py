@@ -205,6 +205,8 @@ def get_setup_event_modal_details_fields(event: Event) -> list:
     return get_setup_event_modal_details_fields_class()
   elif event.type == E_TEST:
     return get_setup_event_modal_details_fields_test(event)
+  elif event.type == E_ASSIGNMENT:
+    return get_setup_event_modal_details_fields_assignment()
   
 def get_setup_event_modal_details_fields_resources() -> list:
   return [
@@ -287,6 +289,10 @@ def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
     blocks += get_test_fields(test)
 
   return blocks
+  
+def get_setup_event_modal_details_fields_assignment() -> list:
+  return [
+  ]
 
 def handle_remove_test(client: WebClient, ack: Ack, body, logger):
     ack()
@@ -388,7 +394,7 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
 
   if is_first_setup_view:
     event = get_event(0, event_type, event_name, event_datetime, event_info_str)
-    if event.type == E_RESOURCES:
+    if event.type == E_RESOURCES or event.type == E_ASSIGNMENT:
       ack(response_action="clear")
     else:
       ack(response_action="update", view=get_setup_event_modal(event))
@@ -422,6 +428,8 @@ def set_event_details(event: Event, modal_values: dict):
     set_event_details_class(event, modal_values)
   elif event.type == E_TEST:
     set_event_details_test(event, modal_values)
+  elif event.type == E_ASSIGNMENT:
+    set_event_details_assignment(event, modal_values)
 
 def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
   logger.info(f"got resources details: ")
@@ -439,3 +447,6 @@ def set_event_details_test(event: TestEvent, modal_values: dict):
   logger.info(f"got test details: {event_duration}")
   
   event.duration_m = event_duration
+
+def set_event_details_assignment(event: ResourcesEvent, modal_values: dict):
+  logger.info(f"got assignment details: ")

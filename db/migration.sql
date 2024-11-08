@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS course
   name       VARCHAR(64)  NOT NULL,
   hash       VARCHAR(255) NOT NULL,
   channel_id VARCHAR(64)  NULL     DEFAULT null,
-  start_date DATE         NULL     DEFAULT null,
+  started_at TIMESTAMP    NULL     DEFAULT null,
   created_at TIMESTAMP    not null default CURRENT_TIMESTAMP
 );
 
@@ -22,7 +22,8 @@ insert ignore into event_type (id, name)
 values
 (1, 'resources'),
 (2, 'class'),
-(3, 'test');
+(3, 'test'),
+(4, 'assignment');
 
 create table if not exists course_event
 (
@@ -33,6 +34,7 @@ create table if not exists course_event
   start_time    TIMESTAMP    not nulL,
   info          text         not null,
   
+  published  BOOL      not null default 0,
   created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
   edited_at  TIMESTAMP not null default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
@@ -73,6 +75,16 @@ create table if not exists course_event_details_test
   constraint test_details_event_id_cnstr foreign key(event_id) references course_event(id)
 );
 
+create table if not exists course_event_details_assignment
+(
+  event_id   INT UNSIGNED NOT NULL PRIMARY KEY,
+  
+  created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
+  edited_at  TIMESTAMP not null default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  constraint assignment_details_event_id_cnstr foreign key(event_id) references course_event(id)
+);
+
 create table if not exists user_role
 (
   id   int unsigned not null auto_increment primary key,
@@ -100,7 +112,8 @@ create table if not exists course_user
   constraint course_user_role_id_cnstr foreign key(role_id) references user_role(id) 
 );
 
-insert ignore into course (id, name, hash, channel_id) -- , start_date)
+-- test lines
+insert ignore into course (id, name, hash, channel_id) -- , started_at)
 values
 (1, 'test_course', '$2b$12$PktaStHWQuZB70nfWirm3ObSVY783bdnK5/WOpkrICCxv3H3m.7k6', 'C07TAH28YUC'); -- , '2024-10-11');
 

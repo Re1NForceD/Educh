@@ -8,14 +8,14 @@ logger = logging.getLogger()
 
 
 class Course:
-  def __init__(self, id: int =None, name: str =None, channel_id: str =None, start_date: datetime.datetime =None, data: dict =None):
+  def __init__(self, id: int =None, name: str =None, channel_id: str =None, started_at: datetime.datetime =None, data: dict =None):
     if data is not None:
       self.from_dict(data)
     else:
       self.id = id
       self.name = name
       self.channel_id = channel_id
-      self.start_date: datetime.datetime = start_date
+      self.started_at: datetime.datetime = started_at
       self.events: dict[int, Event] = {}
       self.users: dict[str, User] = {}
 
@@ -61,7 +61,7 @@ class Course:
       "id": self.id,
       "name": self.name,
       "channel_id": self.channel_id,
-      "start_date": datetime_to_str(self.start_date),
+      "started_at": datetime_to_str(self.started_at),
       "events": [],
       "users": [],
     }
@@ -84,7 +84,7 @@ class Course:
     self.id = data["id"]
     self.name = data["name"]
     self.channel_id = data["channel_id"]
-    self.start_date = datetime_from_str(data["start_date"])
+    self.started_at = datetime_from_str(data["started_at"])
 
     self.events: dict[int, Event] = {}
     self.users: dict[str, User] = {}

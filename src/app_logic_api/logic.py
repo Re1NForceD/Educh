@@ -70,16 +70,16 @@ class AppLogic:
     r_data=r.json()
     self.course = Course(data=r_data["course_data"])
   
-  def update_essensials(self, channel_id: str=None, start_date: datetime.datetime=None):
-    r = self.send_req(func=requests.put, path=ep_update_essensials, json={"channel_id":channel_id,"start_date": datetime_to_str(start_date)})
+  def update_essensials(self, channel_id: str=None, started_at: datetime.datetime=None):
+    r = self.send_req(func=requests.put, path=ep_update_essensials, json={"channel_id":channel_id,"started_at": datetime_to_str(started_at)})
     if not r.ok:
       raise RuntimeError("can't update_essensials")
     
     if channel_id is not None:
       self.course.channel_id = channel_id
 
-    if start_date is not None:
-      self.course.start_date = start_date
+    if started_at is not None:
+      self.course.started_at = started_at
   
   def update_events(self, events: list[Event]):
     r = self.send_req(func=requests.put, path=ep_update_events, json={"events": [event.to_dict() for event in events]})

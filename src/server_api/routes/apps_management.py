@@ -86,10 +86,10 @@ def app_update_users():
 def app_update_essensials():
   logic: Logic = current_app.config['logic']
   
-  if "channel_id" not in request.json and "start_date" not in request.json:
+  if "channel_id" not in request.json and "started_at" not in request.json:
     raise BadRequest("no needed fields to update")
 
-  logic.update_essensials(g.course_id, request.json["channel_id"], datetime_from_str(request.json["start_date"]))
+  logic.update_essensials(g.course_id, request.json["channel_id"], datetime_from_str(request.json["started_at"]))
 
   return {}, 200
 
