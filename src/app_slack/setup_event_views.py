@@ -22,39 +22,39 @@ def pop_event_in_process(user_id: str):
 def add_event_in_process(user_id: str, view_id: str, event: Event, orig: Event=None):
   events_in_process[user_id] = [view_id, event, orig]
 
-def handle_add_course(client, ack: Ack, body, logger):
-  ack()
-  resp = client.views_open(
+async def handle_add_course(client, ack: Ack, body, logger):
+  await ack()
+  resp = await client.views_open(
       trigger_id=body["trigger_id"],
       view=get_setup_event_modal()
   )
   add_event_in_process(body["user"]["id"], resp["view"]["id"], None)
 
-def handle_edit_event(context, client, ack: Ack, body, logger):
-  ack()
+async def handle_edit_event(context, client, ack: Ack, body, logger):
+  await ack()
   user_id = body["user"]["id"]
   event_id = int(body["actions"][0]["value"])
   logic: AppLogic = context["logic"]
 
   event_orig: Event = logic.course.remove_event(event_id)
   event_copy: Event = copy.deepcopy(event_orig)
-  resp = client.views_open(
+  resp = await client.views_open(
       trigger_id=body["trigger_id"],
       view=get_setup_event_modal(event_copy, True)
   )
   add_event_in_process(user_id, resp["view"]["id"], event_copy, event_orig)
 
-def modal_event_closed_callback(context, client: WebClient, ack: Ack, body, logger):
-  ack()
+async def modal_event_closed_callback(context, client: WebClient, ack: Ack, body, logger):
+  await ack()
   user_id = body["user"]["id"]
   logic: AppLogic = context["logic"]
   event_data = pop_event_in_process(user_id)
   if event_data is not None and event_data[2] is not None:
     logic.course.add_event(event_data[2])
-    update_home_views(logic, client)
+    await update_home_views(logic, client)
 
-def handle_remove_event(context, client, ack: Ack, body, logger):
-  ack()
+async def handle_remove_event(context, client, ack: Ack, body, logger):
+  await ack()
   user_id = body["user"]["id"]
   event_id = int(body["actions"][0]["value"])
   logic: AppLogic = context["logic"]
@@ -62,10 +62,10 @@ def handle_remove_event(context, client, ack: Ack, body, logger):
   event_orig: Event = logic.course.remove_event(event_id)
  
   logic.remove_events([event_orig])
-  update_home_views(logic, client)
+  await update_home_views(logic, client)
 
-def event_type_options(ack):
-  ack({"options": get_event_type_model()})
+async def event_type_options(ack):
+  await ack({"options": get_event_type_model()})
 
 def get_event_type_option(type: int):
   return {
@@ -294,14 +294,14 @@ def get_setup_event_modal_details_fields_assignment() -> list:
   return [
   ]
 
-def handle_remove_test(client: WebClient, ack: Ack, body, logger):
-    ack()
+async def handle_remove_test(client: WebClient, ack: Ack, body, logger):
+    await ack()
     user_id = body["user"]["id"]
     test_hash = body["actions"][0]["value"]
     event_data = get_event_in_process(user_id)
     event: TestEvent = event_data[1]
     event.remove_config(test_hash)
-    client.views_update(
+    await client.views_update(
         view_id=event_data[0],
         view=get_setup_event_modal(event)
     )
@@ -355,7 +355,7 @@ def get_test_fields(test: TestConfig):
 
 
 # view processing
-def update_modal_event_setup_test_config(user_id: str, test: TestConfig, client: WebClient):
+async def update_modal_event_setup_test_config(user_id: str, test: TestConfig, client: WebClient):
   if test is None:
     return
   
@@ -370,12 +370,12 @@ def update_modal_event_setup_test_config(user_id: str, test: TestConfig, client:
   test_event: TestEvent = event
   test_event.add_config(test)
 
-  client.views_update(
+  await client.views_update(
       view_id=event_data[0],
       view=get_setup_event_modal(event)
   )
 
-def modal_event_setup_callback(context, ack: Ack, body, client, logger):
+async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
   is_first_setup_view = len(body["view"].get("private_metadata")) == 0
@@ -395,15 +395,15 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   if is_first_setup_view:
     event = get_event(0, event_type, event_name, event_datetime, event_info_str)
     if event.type == E_RESOURCES or event.type == E_ASSIGNMENT:
-      ack(response_action="clear")
+      await ack(response_action="clear")
     else:
-      ack(response_action="update", view=get_setup_event_modal(event))
+      await ack(response_action="update", view=get_setup_event_modal(event))
       add_event_in_process(user_id, body["view"]["id"], event)
       return
   else:
     # TODO: validate event here
     # ack(response_action="errors", errors={"event_name_input":"You are loh"})
-    ack(response_action="clear")
+    await ack(response_action="clear")
     event_data = pop_event_in_process(user_id)
     event = event_data[1]
 
@@ -415,11 +415,11 @@ def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   # set event details and add event
   logic: AppLogic = context["logic"]
   set_event_details(event, modal_values)
-  add_new_event(event, logic, client)
+  await add_new_event(event, logic, client)
 
-def add_new_event(event: Event, logic: AppLogic, client):
+async def add_new_event(event: Event, logic: AppLogic, client):
   logic.update_events([event])
-  update_home_views(logic, client)
+  await update_home_views(logic, client)
 
 def set_event_details(event: Event, modal_values: dict):
   if event.type == E_RESOURCES:

@@ -5,7 +5,7 @@ import os
 import logging
 
 
-if __name__ == "__main__":
+async def main():
   logging.basicConfig(level=logging.DEBUG)
 #   logger = logging.getLogger()
 #   console_handler = logging.StreamHandler()
@@ -30,5 +30,9 @@ if __name__ == "__main__":
 
   app_logic = app_logic_api.AppLogic(logic_config)
   slack_app = app_slack.init_slack_app(app_config, app_logic)
-  slack_app.start()
+  await slack_app.start()
+
+if __name__ == "__main__":
+  import asyncio
+  asyncio.run(main())
   

@@ -56,6 +56,9 @@ class AppLogic:
 
   def is_teacher_user(self, user_id: str):
     return self.course.is_teacher_user(user_id)
+
+  def is_in_process(self):
+    return self.course.started_at is not None
   
   def update_users(self):
     users_data = []

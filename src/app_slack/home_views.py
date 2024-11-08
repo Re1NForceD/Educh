@@ -1,10 +1,10 @@
 from course_classes import *
 from app_logic_api import *
 
-def update_home_views(logic: AppLogic, client):
+async def update_home_views(logic: AppLogic, client):
   for user in logic.course.users.values():
     if user.is_teacher():
-      client.views_publish(
+      await client.views_publish(
           user_id=user.platform_id,
           view=get_home_view(user, logic)
       )

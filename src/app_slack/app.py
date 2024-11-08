@@ -1,5 +1,6 @@
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
+import asyncio
+from slack_bolt.app.async_app import AsyncApp
+from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
 from .events import register_app_events, get_home_view
 
@@ -13,7 +14,7 @@ class SlackApp:
     self._configure_app(config)
     self.logic: AppLogic = logic
 
-    self.app = App(
+    self.app = AsyncApp(
         token=self.config["SLACK_BOT_TOKEN"],
     )
 
@@ -27,7 +28,7 @@ class SlackApp:
   def _register_event_handlers(self):
     register_app_events(self.app, self.logic)
 
-  def start(self):
+  async def start(self):
     self.logic.start()
     
     if self.logic.course.channel_id is None:
@@ -51,16 +52,25 @@ class SlackApp:
     #   self.logic.update_users()
     
     for user in self.logic.course.users.values():
-      self.update_home_page(user)
+      await self.update_home_page(user)
 
     if not self.logic.course.is_can_be_worked_with():
       raise Exception("course can not be worked with")
     
-    SocketModeHandler(self.app, self.config["SLACK_APP_TOKEN"]).start()
+    handler = AsyncSocketModeHandler(self.app, self.config["SLACK_APP_TOKEN"])
+    handler_task = asyncio.create_task(handler.start_async())
+    
+    if self.logic.is_in_process():
+      self.course_loop()
 
-  def update_home_page(self, user: User):
+    await handler_task
+
+  def course_loop(self):
+    logger.info("course_loop")
+
+  async def update_home_page(self, user: User):
     try:
-      self.app.client.views_publish(
+      await self.app.client.views_publish(
           user_id=user.platform_id,
           view=get_home_view(user, self.logic)
       )

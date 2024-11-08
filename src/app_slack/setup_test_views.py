@@ -19,36 +19,36 @@ def pop_test_in_process(user_id: str):
 def add_test_in_process(user_id: str, view_id: str, test: TestConfig, orig: TestConfig = None):
   tests_in_process[user_id] = [view_id, test, orig]
 
-def handle_add_test(client: WebClient, ack: Ack, body, logger):
-  ack()
-  client.views_push(
+async def handle_add_test(client: WebClient, ack: Ack, body, logger):
+  await ack()
+  await client.views_push(
       trigger_id=body["trigger_id"],
       view=get_setup_test_modal()
   )
 
-def handle_edit_test(client: WebClient, ack: Ack, body, logger):
-  ack()
+async def handle_edit_test(client: WebClient, ack: Ack, body, logger):
+  await ack()
   user_id = body["user"]["id"]
   test_hash = body["actions"][0]["value"]
   event_data = get_event_in_process(user_id)
   event: TestEvent = event_data[1]
   test_orig: TestConfig = event.remove_config(test_hash)
   test_copy: TestConfig = copy.deepcopy(test_orig)
-  resp = client.views_push(
+  resp = await client.views_push(
       trigger_id=body["trigger_id"],
       view=get_setup_test_modal(test_copy)
   )
   add_test_in_process(user_id, resp["view"]["id"], test_copy, test_orig)
 
-def modal_test_closed_callback(client: WebClient, ack: Ack, body, logger):
-  ack()
+async def modal_test_closed_callback(client: WebClient, ack: Ack, body, logger):
+  await ack()
   user_id = body["user"]["id"]
   test_data = pop_test_in_process(user_id)
   if test_data is not None and test_data[2] is not None:
-    update_modal_event_setup_test_config(user_id, test_data[2], client)
+    await update_modal_event_setup_test_config(user_id, test_data[2], client)
 
-def test_type_options(ack):
-  ack({"options": get_test_type_model()})
+async def test_type_options(ack):
+  await ack({"options": get_test_type_model()})
 
 def get_test_type_option(type: int):
   return {
@@ -355,8 +355,8 @@ def get_setup_test_modal_details_fields_test(test: TestConfig) -> list:
 
 
 # view processing
-def handle_add_signle_variant(ack: Ack, body, client, logger):
-  ack()
+async def handle_add_signle_variant(ack: Ack, body, client, logger):
+  await ack()
   user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
 
@@ -364,26 +364,26 @@ def handle_add_signle_variant(ack: Ack, body, client, logger):
   test: TestConfigSignle = test_data[1]
   test.add_variant(modal_values["test_variant_select"]["test_variant"]["value"])
   
-  client.views_update(
+  await client.views_update(
       view_id=test_data[0],
       view=get_setup_test_modal(test, True)
   )
 
-def handle_remove_signle_variant(ack: Ack, body, client, logger):
-  ack()
+async def handle_remove_signle_variant(ack: Ack, body, client, logger):
+  await ack()
   user_id = body["user"]["id"]
 
   test_data = get_test_in_process(user_id)
   test: TestConfigSignle = test_data[1]
   test.remove_variant(body["actions"][0]["value"])
   
-  client.views_update(
+  await client.views_update(
       view_id=test_data[0],
       view=get_setup_test_modal(test)
   )
 
-def handle_add_multi_variant_correct(ack: Ack, body, client, logger):
-  ack()
+async def handle_add_multi_variant_correct(ack: Ack, body, client, logger):
+  await ack()
   user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
 
@@ -391,13 +391,13 @@ def handle_add_multi_variant_correct(ack: Ack, body, client, logger):
   test: TestConfigMulti = test_data[1]
   test.add_correct(modal_values["test_variant_select"]["test_variant"]["value"])
   
-  client.views_update(
+  await client.views_update(
       view_id=test_data[0],
       view=get_setup_test_modal(test, True)
   )
 
-def handle_add_multi_variant_incorrect(ack: Ack, body, client, logger):
-  ack()
+async def handle_add_multi_variant_incorrect(ack: Ack, body, client, logger):
+  await ack()
   user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
 
@@ -405,25 +405,25 @@ def handle_add_multi_variant_incorrect(ack: Ack, body, client, logger):
   test: TestConfigMulti = test_data[1]
   test.add_incorrect(modal_values["test_variant_select"]["test_variant"]["value"])
   
-  client.views_update(
+  await client.views_update(
       view_id=test_data[0],
       view=get_setup_test_modal(test, True)
   )
 
-def handle_remove_multi_variant(ack: Ack, body, client, logger):
-  ack()
+async def handle_remove_multi_variant(ack: Ack, body, client, logger):
+  await ack()
   user_id = body["user"]["id"]
 
   test_data = get_test_in_process(user_id)
   test: TestConfigMulti = test_data[1]
   test.remove_variant(body["actions"][0]["value"])
   
-  client.views_update(
+  await client.views_update(
       view_id=test_data[0],
       view=get_setup_test_modal(test)
   )
 
-def modal_test_setup_callback(context, ack: Ack, body, client, logger):
+async def modal_test_setup_callback(context, ack: Ack, body, client, logger):
   user_id = body["user"]["id"]
   modal_values = body["view"]["state"]["values"]
   is_first_setup_view = len(body["view"].get("private_metadata")) == 0
@@ -435,7 +435,7 @@ def modal_test_setup_callback(context, ack: Ack, body, client, logger):
 
   if is_first_setup_view:
     test = init_test_config(test_type)
-    ack(response_action="update", view=get_setup_test_modal(test))
+    await ack(response_action="update", view=get_setup_test_modal(test))
     add_test_in_process(user_id, body["view"]["id"], test)
     return
   else:
@@ -447,10 +447,10 @@ def modal_test_setup_callback(context, ack: Ack, body, client, logger):
 
     valid_error = test.validate()
     if valid_error:
-      ack(response_action="errors", errors={"test_question_select": valid_error})
+      await ack(response_action="errors", errors={"test_question_select": valid_error})
       return
     
-    ack()
+    await ack()
     pop_test_in_process(user_id)
   
-  update_modal_event_setup_test_config(body["user"]["id"], test, client)
+  await update_modal_event_setup_test_config(body["user"]["id"], test, client)
