@@ -51,8 +51,8 @@ class AppLogic:
   def is_first_launch(self):
     return self.course.channel_id is None or len(self.course.users) == 0
 
-  def is_need_setup_events(self):
-    return len(self.course.events) == 0
+  def is_can_start_course(self):
+    return len(self.course.events) > 0
 
   def is_teacher_user(self, user_id: str):
     return self.course.is_teacher_user(user_id)
@@ -99,3 +99,12 @@ class AppLogic:
     
     r_data=r.json()
     self.course = Course(data=r_data["course_data"])
+
+  def start_course(self) -> bool:
+    if self.course.started_at is not None:
+      logger.warning(f"try to start course, but it already started")
+      return False
+    
+    start_time = datetime.datetime.now()
+    self.update_essensials(started_at=start_time)
+    return True

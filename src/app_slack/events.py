@@ -1,5 +1,6 @@
 from slack_sdk import WebClient
 
+from .course_loop import start_course_loop
 from .home_views import *
 from .setup_event_views import *
 from .setup_test_views import handle_add_test, handle_edit_test, handle_add_signle_variant, handle_remove_signle_variant, handle_add_multi_variant_correct, handle_add_multi_variant_incorrect, handle_remove_multi_variant, test_type_options, modal_test_setup_callback, modal_test_closed_callback
@@ -7,12 +8,12 @@ from .setup_test_views import handle_add_test, handle_edit_test, handle_add_sign
 from app_logic_api import *
 
 
-async def member_join(context, event, client, logger):
+async def member_join(context, event, client: WebClient, logger):
   logger.info(f"member_join {event}")
   await track_user(event["user"]["id"], context["logic"], client)
 
 
-async def app_home_opened(context, event, client, logger):
+async def app_home_opened(context, event, client: WebClient, logger):
   await track_user(event["user"], context["logic"], client)
 
 
@@ -42,6 +43,12 @@ def register_app_events(app, logic):
     context["logic"] = logic
     await next()
   
+  @app.action("click_start_course")
+  async def handle_start_course(context, body, logger, client: WebClient, ack: Ack):
+    await ack()
+    logic.start_course()
+    start_course_loop(logic, client)
+
   app.event("team_join")(member_join)
   app.event("app_home_opened")(app_home_opened)
   app.event("message")(handle_message_event)
@@ -52,7 +59,6 @@ def register_app_events(app, logic):
   app.action("click_edit_event")(handle_edit_event)
   app.view_closed("view_event_setup")(modal_event_closed_callback)
   app.action("click_remove_event")(handle_remove_event)
-  # app.action("click_event_setup_finished") # TODO
 
   app.action("click_add_test")(handle_add_test)
   app.view("view_test_setup")(modal_test_setup_callback)

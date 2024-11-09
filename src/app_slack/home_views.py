@@ -13,8 +13,8 @@ def get_home_view(user: User, logic: AppLogic):
   blocks = []
 
   is_teacher = user.is_teacher()
-  is_need_setup_events = logic.is_need_setup_events()
-  logger.info(f"setup home view params: {is_teacher}, {is_need_setup_events}")
+  is_can_start_course = logic.is_can_start_course()
+  logger.info(f"setup home view params: {is_teacher}, {is_can_start_course}")
   
   blocks = []
   if is_teacher: # TODO
@@ -91,15 +91,15 @@ def get_events_list(logic: AppLogic):
     },
   ]
 
-  if not logic.is_need_setup_events():
+  if logic.is_can_start_course():
     blocks[0]["accessory"] = {
       "type": "button",
       "style": "primary",
       "text": {
         "type": "plain_text",
-        "text": "Continue course setup",
+        "text": "Start course",
       },
-      "action_id": "click_event_setup_finished"
+      "action_id": "click_start_course"
     }
 
   for event in logic.course.events.values():

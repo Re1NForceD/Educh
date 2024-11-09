@@ -3,6 +3,7 @@ from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
 from .events import register_app_events, get_home_view
+from .course_loop import start_course_loop
 
 from course_classes import *
 from app_logic_api import *
@@ -61,12 +62,9 @@ class SlackApp:
     handler_task = asyncio.create_task(handler.start_async())
     
     if self.logic.is_in_process():
-      self.course_loop()
+      start_course_loop(self.logic, self.app.client)
 
     await handler_task
-
-  def course_loop(self):
-    logger.info("course_loop")
 
   async def update_home_page(self, user: User):
     try:

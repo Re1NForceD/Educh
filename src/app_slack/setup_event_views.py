@@ -22,7 +22,7 @@ def pop_event_in_process(user_id: str):
 def add_event_in_process(user_id: str, view_id: str, event: Event, orig: Event=None):
   events_in_process[user_id] = [view_id, event, orig]
 
-async def handle_add_course(client, ack: Ack, body, logger):
+async def handle_add_course(client: WebClient, ack: Ack, body, logger):
   await ack()
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
@@ -30,7 +30,7 @@ async def handle_add_course(client, ack: Ack, body, logger):
   )
   add_event_in_process(body["user"]["id"], resp["view"]["id"], None)
 
-async def handle_edit_event(context, client, ack: Ack, body, logger):
+async def handle_edit_event(context, client: WebClient, ack: Ack, body, logger):
   await ack()
   user_id = body["user"]["id"]
   event_id = int(body["actions"][0]["value"])
