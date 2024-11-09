@@ -94,6 +94,18 @@ def app_update_essensials():
   return {}, 200
 
 
+@ep_app_verified.route("/set_events_published", methods=["PUT"])
+def app_set_events_published():
+  logic: Logic = current_app.config['logic']
+  
+  if "event_ids" not in request.json:
+    raise BadRequest("no event_ids to set published")
+
+  logic.set_events_published(g.course_id, request.json["event_ids"])
+
+  return {}, 200
+
+
 @ep_app_verified.route("/update_events", methods=["PUT"])
 def app_update_events():
   logic: Logic = current_app.config['logic']

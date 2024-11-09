@@ -33,6 +33,15 @@ class Course:
     if user_id in self.users:
       return self.users[user_id]
     return None
+  
+  def get_next_event(self):
+    next_event: Event = None
+    for event in self.events.values():
+      if event.published:
+        continue
+      elif next_event is None or next_event.start_time > event.start_time:
+        next_event = event
+    return next_event
 
   def get_event(self, event_id: int):
     return self.events.get(event_id, None)

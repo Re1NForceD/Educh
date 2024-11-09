@@ -135,6 +135,11 @@ class MySQLStorage(DataStorage):
     self.exec_update(cnx, f"update course set {','.join(values_update)} where id = {course_id}")
     cnx.commit()
 
+  def set_events_published(self, course_id: int, event_ids: list[int]):
+    cnx = self.get_cnx()
+    self.exec_update(cnx, f"update course_event set published = 1 where course_id = {course_id} and id in ({','.join(map(str, event_ids))})")
+    cnx.commit()
+
   def insert_event_details_resources(self, cnx, event: ResourcesEvent):
     self.exec_insert(cnx, f"insert into course_event_details_resources (event_id) values({event.id})")
 

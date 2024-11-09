@@ -10,6 +10,7 @@ ep_update_users = "app/update_users"
 ep_update_essensials = "app/update_essensials"
 ep_update_events = "app/update_events"
 ep_remove_events = "app/remove_events"
+ep_set_events_published = "app/set_events_published"
 
 class AppLogic:
   def __init__(self, config):
@@ -83,6 +84,14 @@ class AppLogic:
 
     if started_at is not None:
       self.course.started_at = started_at
+
+  def set_events_published(self, events: list[Event]):
+    r = self.send_req(func=requests.put, path=ep_set_events_published, json={"event_ids":[event.id for event in events]})
+    if not r.ok:
+      raise RuntimeError("can't set_events_published")
+    
+    for event in events:
+      self.course.events[event.id].published = True # TODO: set datetime
   
   def update_events(self, events: list[Event]):
     r = self.send_req(func=requests.put, path=ep_update_events, json={"events": [event.to_dict() for event in events]})
