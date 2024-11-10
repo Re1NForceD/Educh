@@ -6,6 +6,7 @@ from slack_bolt import Ack
 from slack_sdk import WebClient
 import json
 import copy
+import random
 
 
 tests_in_process: dict[str, list[str, TestConfig, TestConfig]] = {} # [user_id, [view_id, TestConfig, orig TestConfig]]
@@ -454,3 +455,214 @@ async def modal_test_setup_callback(context, ack: Ack, body, client, logger):
     pop_test_in_process(user_id)
   
   await update_modal_event_setup_test_config(body["user"]["id"], test, client)
+
+
+async def handle_take_test(context, body, logger, client: WebClient, ack: Ack):
+  await ack()
+  
+  logic: AppLogic = context["logic"]
+
+  logger.info(body)
+  event_id = int(body["actions"][0]["value"])
+  event: Event = logic.course.get_event(event_id)
+
+  if event.type != E_TEST:
+    logger.error(f"try to take test from event {event_id} but it is not a test event")
+
+  resp = await client.views_open(
+      trigger_id=body["trigger_id"],
+      view=get_test_modal(event)
+  )
+
+def get_test_modal(event: TestEvent):
+  modal = {
+    "type": "modal",
+    "callback_id": "view_take_test",
+    "notify_on_close": True,
+    "title": {
+      "type": "plain_text",
+      "text": event.name
+    },
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit"
+    },
+    "close": {
+      "type": "plain_text",
+      "text": "Cancel"
+    },
+    "private_metadata": f"{event.id}",
+  }
+
+  blocks = []
+  for hash in random.sample(list(event.configs.keys()), len(event.configs)):
+    blocks += get_test_config_blocks(hash, event.configs[hash])
+    blocks.append({"type": "divider"})
+
+  modal["blocks"] = blocks
+
+  return modal
+
+def get_test_config_blocks(hash: str, test: TestConfig):
+  if test.type == T_SINGLE:
+    return get_test_config_blocks_signle(hash, test)
+  elif test.type == T_MULTI:
+    return get_test_config_blocks_multi(hash, test)
+  return []
+
+def get_test_config_blocks_signle(hash: str, test: TestConfigSignle):
+  return [
+    {
+      "type": "input",
+      "block_id": hash,
+      "label": {
+        "type": "plain_text",
+        "text": test.question,
+      },
+      "element": {
+        "type": "radio_buttons",
+        "action_id": "signle_test_ans",
+        "options": [get_test_option(opt_hash, test.variants[opt_hash]) for opt_hash in random.sample(list(test.variants.keys()), len(test.variants))]
+      },
+    },
+  ]
+
+def get_test_option(hash: str, opt: str):
+  return {
+    "value": hash,
+    "text": {
+      "type": "plain_text",
+      "text": opt
+    }
+  }
+
+def get_test_config_blocks_multi(hash: str, test: TestConfigMulti):
+  variants = {**test.correct, **test.incorrect}
+  return [
+    {
+      "type": "input",
+      "block_id": hash,
+      "label": {
+        "type": "plain_text",
+        "text": test.question,
+      },
+      "element": {
+        "type": "checkboxes",
+        "action_id": "multi_test_ans",
+        "options": [get_test_option(opt_hash, variants[opt_hash]) for opt_hash in random.sample(list(variants.keys()), len(variants))]
+      },
+    },
+  ]
+
+async def modal_take_test_callback(context, body, logger, client: WebClient, ack: Ack):
+  await ack()
+  
+  logic: AppLogic = context["logic"]
+  user_id = body["user"]["id"]
+  event_id = int(body["view"]["private_metadata"])
+  
+  answers: dict[str, list[str]] = {}
+  modal_values = body["view"]["state"]["values"]
+  for hash, value in modal_values.items():
+    if "signle_test_ans" in value:
+      answers[hash] = [value["signle_test_ans"]["selected_option"]["value"]]
+    elif "multi_test_ans" in value:
+      answers[hash] = [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]
+
+  logic.submit_test_answers(event_id, user_id, answers)
+
+async def handle_submit_assignment(context, body, logger, client: WebClient, ack: Ack):
+  await ack()
+  
+  logic: AppLogic = context["logic"]
+
+  logger.info(body)
+  event_id = int(body["actions"][0]["value"])
+  event: Event = logic.course.get_event(event_id)
+
+  if event.type != E_TEST:
+    logger.error(f"try to take test from event {event_id} but it is not a test event")
+
+  resp = await client.views_open(
+      trigger_id=body["trigger_id"],
+      view=get_submit_assignment_modal(event)
+  )
+
+def get_submit_assignment_modal(event: AssignmentEvent):
+  modal = {
+    "type": "modal",
+    "callback_id": "view_submit_assignment",
+    "title": {
+      "type": "plain_text",
+      "text": event.name
+    },
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit"
+    },
+    "close": {
+      "type": "plain_text",
+      "text": "Cancel"
+    },
+    "private_metadata": f"{event.id}",
+    "blocks": [
+      {
+        "type": "input",
+        "block_id": "file_submission",
+        "label": {
+          "type": "plain_text",
+          "text": "Submit assignment"
+        },
+        "element": {
+          "type": "file_input",
+          "action_id": "submitted_assignment",
+          "filetypes": [
+            "doc",
+            "docx",
+            "pdf",
+            "jpg",
+            "png",
+            "gzip",
+          ],
+          "max_files": 1
+        }
+      },
+    ]
+  }
+
+  return modal
+
+async def modal_submit_assignment_callback(context, body, logger, client: WebClient, ack: Ack):
+  await ack()
+  
+  logic: AppLogic = context["logic"]
+  user_id = body["user"]["id"]
+  event_id = int(body["view"]["private_metadata"])
+  modal_values = body["view"]["state"]["values"]
+
+  event: Event = logic.course.get_event(event_id)
+  if event is None or event.type != E_ASSIGNMENT:
+    logger.error(f"cant find assignment event: {event_id}")
+    return
+
+  await notify_submission(logic, user_id, event, modal_values["file_submission"]["submitted_assignment"]["files"], client)
+
+async def notify_submission(logic: AppLogic, user_id: str, event: AssignmentEvent, files, client: WebClient):
+  logic.user_submit_assignment(event, user_id, files)
+  await notify_teachers(logic, event, user_id, files, client)
+
+async def notify_teachers(logic: AppLogic, event: AssignmentEvent, user_id: str, files, client: WebClient):
+  users_to_notify: list[str] = []
+  for user in logic.course.users.values():
+    if user.is_teacher():
+      users_to_notify.append(user.platform_id)
+      await client.chat_postMessage(channel=user.platform_id, blocks=[
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": f"<@{user_id}> has submitted for event *{event.name}* following: <{files[0]['permalink']}|file>",
+            },
+          },
+        ]
+      ) # TODO: set grade

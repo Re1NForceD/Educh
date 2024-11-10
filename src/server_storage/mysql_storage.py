@@ -163,7 +163,7 @@ class MySQLStorage(DataStorage):
       self.insert_event_details_assignment(cnx, event)
 
   def insert_event(self, cnx, course_id: int, event: Event):
-    event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time, info) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}', '{event.info}')")
+    event_id = self.exec_insert(cnx, f"insert into course_event (course_id, event_type_id, name, start_time, info) values({course_id}, {event.type}, '{event.name}', '{datetime_to_str(event.start_time)}', {repr(event.info)})")
     event.id = event_id
     self.insert_event_details(cnx, event)
 
@@ -174,7 +174,7 @@ class MySQLStorage(DataStorage):
     cnx.commit()
 
   def update_event_base(self, cnx, course_id: int, event: Event):
-    updated_rows = self.exec_update(cnx, f"update course_event set name='{event.name}', start_time='{datetime_to_str(event.start_time)}', info='{event.info}', published={event.published} where course_id={course_id} and id={event.id} and event_type_id={event.type}")
+    updated_rows = self.exec_update(cnx, f"update course_event set name='{event.name}', start_time='{datetime_to_str(event.start_time)}', info={repr(event.info)}, published={event.published} where course_id={course_id} and id={event.id} and event_type_id={event.type}")
     if updated_rows != 1:
       logger.error(f"incorrect event update, updated rows: {updated_rows}, for event: {event.to_dict()}")
 

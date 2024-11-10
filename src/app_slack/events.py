@@ -3,7 +3,7 @@ from slack_sdk import WebClient
 from .course_loop import start_course_loop
 from .home_views import *
 from .setup_event_views import *
-from .setup_test_views import handle_add_test, handle_edit_test, handle_add_signle_variant, handle_remove_signle_variant, handle_add_multi_variant_correct, handle_add_multi_variant_incorrect, handle_remove_multi_variant, test_type_options, modal_test_setup_callback, modal_test_closed_callback
+from .setup_test_views import handle_add_test, handle_edit_test, handle_add_signle_variant, handle_remove_signle_variant, handle_add_multi_variant_correct, handle_add_multi_variant_incorrect, handle_remove_multi_variant, test_type_options, modal_test_setup_callback, modal_test_closed_callback, handle_take_test, modal_take_test_callback, handle_submit_assignment, modal_submit_assignment_callback
 
 from app_logic_api import *
 
@@ -48,6 +48,11 @@ def register_app_events(app, logic):
     await ack()
     logic.start_course()
     start_course_loop(logic, client)
+
+  app.action("click_take_test")(handle_take_test)
+  app.view("view_take_test")(modal_take_test_callback)
+  app.action("click_submit_assignment")(handle_submit_assignment)
+  app.view("view_submit_assignment")(modal_submit_assignment_callback)
 
   app.event("team_join")(member_join)
   app.event("app_home_opened")(app_home_opened)

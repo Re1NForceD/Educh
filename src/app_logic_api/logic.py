@@ -117,3 +117,16 @@ class AppLogic:
     start_time = datetime.datetime.now()
     self.update_essensials(started_at=start_time)
     return True
+  
+  def submit_test_answers(self, event_id: int, user_id: str, answers: dict[str, list[str]]):
+    logger.debug(f"submit_test_answers {user_id} - {event_id} - {answers}")
+    event: Event = self.course.get_event(event_id)
+    
+    if event is None:
+      logger.error(f"cant find event: {event_id}")
+      return
+    
+    # TODO: check result & call api
+    
+  def user_submit_assignment(self, event: AssignmentEvent, user_id: str, files):
+    pass

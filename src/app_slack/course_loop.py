@@ -53,28 +53,80 @@ async def publish_event(logic: AppLogic, event: Event, client: WebClient):
   blocks = [
     json.loads(event.info)
   ]
+  icon_emoji = None
 
   if event.type == E_RESOURCES:
     blocks += get_blocks_event_resources(event)
+    icon_emoji = ":bookmark_tabs:"
   elif event.type == E_CLASS:
     blocks += get_blocks_event_class(event)
+    icon_emoji = ":speaking_head_in_silhouette:"
   elif event.type == E_TEST:
     blocks += get_blocks_event_test(event)
+    icon_emoji = ":memo:"
   elif event.type == E_ASSIGNMENT:
     blocks += get_blocks_event_assignment(event)
+    icon_emoji = ":spiral_calendar_pad:"
 
-  await client.chat_postMessage(channel=logic.course.channel_id, blocks=blocks)
+  await client.chat_postMessage(channel=logic.course.channel_id, blocks=blocks, icon_emoji=icon_emoji, username=event.name)
 
   logic.set_events_published([event])
 
 def get_blocks_event_resources(event: ResourcesEvent):
   return []
 
-async def get_blocks_event_class(event: ClassEvent):
-  return [] # TODO
+def get_blocks_event_class(event: ClassEvent):
+  return [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Duration:* {event.duration_m} m"
+      }
+    },
+  ]
 
-async def get_blocks_event_test(event: TestEvent):
-  return [] # TODO
+def get_blocks_event_test(event: TestEvent):
+  return [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Duration:* {event.duration_m} m, *Questions:* {len(event.configs)}"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Take test!",
+          },
+          "style": "primary",
+          "value": f"{event.id}",
+          "action_id": "click_take_test"
+        },
+      ]
+    },
+  ]
 
-async def get_blocks_event_assignment(event: AssignmentEvent):
-  return [] # TODO
+def get_blocks_event_assignment(event: AssignmentEvent):
+  return [
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Submit assignment!",
+          },
+          "style": "primary",
+          "value": f"{event.id}",
+          "action_id": "click_submit_assignment"
+        },
+      ]
+    },
+  ]

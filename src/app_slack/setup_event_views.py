@@ -2,6 +2,7 @@ from course_classes import *
 from app_logic_api import *
 
 from .home_views import update_home_views
+from .course_loop import clear_next_event
 
 from slack_bolt import Ack
 from slack_sdk import WebClient
@@ -62,6 +63,7 @@ async def handle_remove_event(context, client, ack: Ack, body, logger):
   event_orig: Event = logic.course.remove_event(event_id)
  
   logic.remove_events([event_orig])
+  clear_next_event()
   await update_home_views(logic, client)
 
 async def event_type_options(ack):
@@ -419,6 +421,7 @@ async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
 
 async def add_new_event(event: Event, logic: AppLogic, client):
   logic.update_events([event])
+  clear_next_event()
   await update_home_views(logic, client)
 
 def set_event_details(event: Event, modal_values: dict):
