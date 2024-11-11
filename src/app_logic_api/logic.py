@@ -11,6 +11,7 @@ ep_update_essensials = "app/update_essensials"
 ep_update_events = "app/update_events"
 ep_remove_events = "app/remove_events"
 ep_set_events_published = "app/set_events_published"
+ep_put_event_submition = "app/put_event_submition"
 
 class AppLogic:
   def __init__(self, config):
@@ -126,7 +127,13 @@ class AppLogic:
       logger.error(f"cant find event: {event_id}")
       return
     
-    # TODO: check result & call api
+    r = self.send_req(func=requests.post, path=ep_put_event_submition, json={"event_id": event_id, "user_id": user_id, "answers": answers})
+    if not r.ok:
+      raise RuntimeError("can't put_event_submition")
+    
+    r_data=r.json()
+    self.course.colect_tests_results({event_id: {user_id: {"answers": answers, "result": r_data["result"]}}})
     
   def user_submit_assignment(self, event: AssignmentEvent, user_id: str, files):
+    # TODO: save submition on api
     pass

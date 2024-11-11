@@ -39,3 +39,6 @@ class DataStorage():
 
   def remove_events(self, course_id: int, events: list[Event]):
     pass
+  
+  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
+    pass

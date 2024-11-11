@@ -160,3 +160,20 @@ def app_remove_events():
 
   course = logic.get_course_data(g.course_id)
   return {"course_data": course.to_dict()}, 200
+
+
+@ep_app_verified.route("/put_event_submition", methods=["POST"])
+def app_put_event_submition():
+  logic: Logic = current_app.config['logic']
+  course = logic.get_course_data(g.course_id)
+
+  if "event_id" not in request.json:
+    raise BadRequest("not found field: event_id")
+  if "user_id" not in request.json:
+    raise BadRequest("not found field: user_id")
+  if "answers" not in request.json:
+    raise BadRequest("not found field: answers")
+  
+  result = logic.put_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["answers"], request.json.get("result", None))
+  return {"result": result}, 200
+

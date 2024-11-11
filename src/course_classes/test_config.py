@@ -22,6 +22,9 @@ class TestConfig:
   def calc_hash(self) -> str:
     pass
 
+  def get_result(self, answer: dict):
+    pass
+
   def to_dict_details(self) -> dict:
     pass
 
@@ -72,8 +75,8 @@ class TestConfigSignle(TestConfig):
     if self.ans_hash == var_hash:
       self.ans_hash = next(iter(self.variants))
 
-  def get_result(self, var_hash: str):
-    return 1 if self.ans_hash == var_hash else 0
+  def get_result(self, answer: dict):
+    return 100 if self.ans_hash == answer["var_hash"] else 0
 
   def validate(self):
     return "need 3 variants" if len(self.variants) < 3 else None
@@ -118,12 +121,14 @@ class TestConfigMulti(TestConfig):
     self.correct.pop(var_hash, None)
     self.incorrect.pop(var_hash, None)
 
-  def get_result(self, vars_hash: list[str]):
+  def get_result(self, answer: dict):
     result = 0
-    for var in vars_hash:
+    for var in answer["vars_hash"]:
+      if var in self.incorrect:
+        return 0
       if var in self.correct:
-        result += 1
-    return float(result) / len(self.correct)
+        result += 100
+    return int(float(result) / len(self.correct))
 
   def validate(self):
     return "need atleast 2 correct variants" if len(self.correct) < 2 else "need atleast 3 incorrect variants" if len(self.incorrect) < 3 else None

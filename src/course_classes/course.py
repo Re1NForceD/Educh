@@ -19,6 +19,8 @@ class Course:
       self.events: dict[int, Event] = {}
       self.users: dict[str, User] = {}
 
+    self.event_results: dict[int, dict[str, dict]] = {}
+
   def is_can_be_worked_with(self) -> bool:
     if self.channel_id is None:
       return False
@@ -103,3 +105,37 @@ class Course:
     
     for user_data in data["users"]:
       self.add_user(User(data=user_data))
+
+  def colect_tests_results(self, events_results: dict): # {event_id: {user_id: {answers, result}}}
+    for event_id, results in events_results.items():
+      event: TestConfig = self.get_event(event_id)
+      if event is None:
+        logger.warning(f"try to collect tests results but event not found: {event_id}")
+        continue
+      
+      event_result: dict = self.event_results.get(event_id, None)
+      if event_result is None:
+        self.event_results[event_id] = {}
+        event_result = self.event_results.get(event_id, None)
+      
+      for user_id, result in results.items():
+        user: User = self.get_user(user_id)
+        if user is None or user != U_LEARNER:
+          logger.warning(f"try to collect results for invalid user: {user} - {user.role if user is not None else E_INVALID}")
+          continue
+        
+        if user_id in event_result:
+          logger.warning(f"update user {user_id} event result")
+
+        event_result[user_id] = result
+
+  def grade_submition(self, event_id, submition):
+    event: Event = self.get_event(event_id)
+
+    if event is None:
+      logger.error(f"no event found: {event_id}")
+
+    if event.type == E_TEST:
+      return event.get_result(submition)
+    
+    return 0

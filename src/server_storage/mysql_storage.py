@@ -180,17 +180,17 @@ class MySQLStorage(DataStorage):
 
   def update_event_details_resources(self, cnx, event: ResourcesEvent):
     pass
-    # self.exec_insert(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
+    # self.exec_update(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
 
   def update_event_details_class(self, cnx, event: ClassEvent):
-    self.exec_insert(cnx, f"update course_event_details_class set duration_m={event.duration_m} where event_id={event.id}")
+    self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m} where event_id={event.id}")
 
   def update_event_details_test(self, cnx, event: TestEvent):
-    self.exec_insert(cnx, f"update course_event_details_class set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
+    self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
 
   def update_event_details_assignment(self, cnx, event: AssignmentEvent):
     pass
-    # self.exec_insert(cnx, f"update course_event_details_assignment set info='{event.info}' where event_id={event.id}")
+    # self.exec_update(cnx, f"update course_event_details_assignment set info='{event.info}' where event_id={event.id}")
 
   def update_event_details(self, cnx, course_id: int, event: Event):
     if event.type == E_RESOURCES:
@@ -222,4 +222,9 @@ class MySQLStorage(DataStorage):
     cnx = self.get_cnx()
     for event in events:
       self.remove_event(cnx, course_id, event)
+    cnx.commit()
+  
+  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
+    cnx = self.get_cnx()
+    self.exec_insert(cnx, f"insert into course_event_submition (event_id, user_id, submition, result) values({event_id}, '{user_id}', '{json.dumps(submition)}', {result})")
     cnx.commit()

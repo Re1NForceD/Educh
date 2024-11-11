@@ -234,7 +234,7 @@ def get_setup_test_modal_details_fields_single(test: TestConfigSignle, need_clea
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"- {test.variants[var_hash]} {'(correct)' if test.get_result(var_hash) else ''}"
+        "text": f"- {test.variants[var_hash]} {'(correct)' if test.ans_hash == var_hash else ''}"
       },
       "accessory": {
         "type": "button",
@@ -565,9 +565,9 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
   modal_values = body["view"]["state"]["values"]
   for hash, value in modal_values.items():
     if "signle_test_ans" in value:
-      answers[hash] = [value["signle_test_ans"]["selected_option"]["value"]]
+      answers[hash] = {"var_hash":value["signle_test_ans"]["selected_option"]["value"]}
     elif "multi_test_ans" in value:
-      answers[hash] = [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]
+      answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
 
   logic.submit_test_answers(event_id, user_id, answers)
 

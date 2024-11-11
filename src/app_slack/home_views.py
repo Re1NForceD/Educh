@@ -17,7 +17,7 @@ def get_home_view(user: User, logic: AppLogic):
   logger.info(f"setup home view params: {is_teacher}, {is_can_start_course}")
   
   blocks = []
-  if is_teacher: # TODO
+  if is_teacher: # TODO: more home views
     blocks = get_events_setup_blocks(user, logic)
   else:
     blocks = get_default_blocks(user, logic)

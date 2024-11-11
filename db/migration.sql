@@ -112,6 +112,18 @@ create table if not exists course_user
   constraint course_user_role_id_cnstr foreign key(role_id) references user_role(id) 
 );
 
+create table if not exists course_event_submition
+(
+  event_id   INT UNSIGNED NOT NULL,
+  user_id    VARCHAR(64)  NOT NULL,
+  submition  text         not null,
+  result     int unsigned not null,
+  
+  created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
+  
+  constraint ce_submition_event_id_cnstr foreign key(event_id) references course_event(id)
+);
+
 -- test lines
 insert ignore into course (id, name, hash, channel_id) -- , started_at)
 values

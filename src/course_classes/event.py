@@ -1,5 +1,8 @@
+import logging
 from .tools import *
 from .test_config import *
+
+logger = logging.getLogger()
 
 # event_types
 E_INVALID = 0
@@ -94,6 +97,20 @@ class TestEvent(Event):
   
   def remove_config(self, test_hash: str):
     return self.configs.pop(test_hash)
+  
+  def get_result(self, answers: dict):
+    result = 0
+    count = 0
+    for hash, answer in answers.items():
+      config = self.configs.get(hash, None)
+      if config is None:
+        logger.warning(f"no config found: {hash}")
+        continue
+
+      result += self.configs[hash].get_result(answer)
+      count += 1
+
+    return int(float(result) / count)
   
   def from_dict_configs(self, configs: dict):
     self.configs: dict[str, TestConfig] = {}
