@@ -19,7 +19,7 @@ class Course:
       self.events: dict[int, Event] = {}
       self.users: dict[str, User] = {}
 
-    self.event_results: dict[int, dict[str, dict]] = {}
+    self.submitions: dict[int, dict[str, dict]] = {}
 
   def is_can_be_worked_with(self) -> bool:
     if self.channel_id is None:
@@ -106,6 +106,14 @@ class Course:
     for user_data in data["users"]:
       self.add_user(User(data=user_data))
 
+  def get_all_ungraded_submitions(self):
+    ungraded = 0
+    for per_event in self.submitions.values():
+      for per_user in per_event.values():
+        if per_user["result"] is None:
+          ungraded += 1
+    return ungraded
+
   def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {answers, result}}}
     for event_id, results in event_submitions.items():
       event: TestConfig = self.get_event(event_id)
@@ -113,10 +121,10 @@ class Course:
         logger.warning(f"try to collect tests results but event not found: {event_id}")
         continue
       
-      event_result: dict = self.event_results.get(event_id, None)
+      event_result: dict = self.submitions.get(event_id, None)
       if event_result is None:
-        self.event_results[event_id] = {}
-        event_result = self.event_results.get(event_id, None)
+        self.submitions[event_id] = {}
+        event_result = self.submitions.get(event_id, None)
       
       for user_id, result in results.items():
         user: User = self.get_user(user_id)

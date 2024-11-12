@@ -1,7 +1,7 @@
 from course_classes import *
 from app_logic_api import *
 
-from .home_views import update_home_views
+from .home_views import update_home_views, get_manage_events_modal
 from .course_loop import clear_next_event
 
 from slack_bolt import Ack
@@ -25,7 +25,7 @@ def add_event_in_process(user_id: str, view_id: str, event: Event, orig: Event=N
 
 async def handle_add_course(client: WebClient, ack: Ack, body, logger):
   await ack()
-  resp = await client.views_open(
+  resp = await client.views_push(
       trigger_id=body["trigger_id"],
       view=get_setup_event_modal()
   )
@@ -38,7 +38,7 @@ async def handle_edit_event(context, client: WebClient, ack: Ack, body, logger):
   logic: AppLogic = context["logic"]
 
   event_copy: Event = copy.deepcopy(logic.course.get_event(event_id))
-  resp = await client.views_open(
+  resp = await client.views_push(
       trigger_id=body["trigger_id"],
       view=get_setup_event_modal(event_copy)
   )
@@ -54,7 +54,12 @@ async def handle_remove_event(context, client, ack: Ack, body, logger):
  
   logic.remove_events([event_orig])
   clear_next_event()
+
   await update_home_views(logic, client)
+  await client.views_update(
+      view_id=body["view"]["id"],
+      view=get_manage_events_modal(logic)
+  )
 
 async def event_type_options(ack):
   await ack({"options": get_event_type_model()})
@@ -389,7 +394,7 @@ async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   if is_first_setup_view:
     event = get_event(0, event_type, event_name, event_datetime, event_info_str)
     if event.type == E_RESOURCES or event.type == E_ASSIGNMENT:
-      await ack(response_action="clear")
+      await ack()
     else:
       await ack(response_action="update", view=get_setup_event_modal(event))
       add_event_in_process(user_id, body["view"]["id"], event)
@@ -397,7 +402,7 @@ async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   else:
     # TODO: validate event here
     # ack(response_action="errors", errors={"event_name_input":"You are loh"})
-    await ack(response_action="clear")
+    await ack()
     event_data = pop_event_in_process(user_id)
     event = event_data[1]
 
@@ -409,7 +414,12 @@ async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   # set event details and add event
   logic: AppLogic = context["logic"]
   set_event_details(event, modal_values)
+  
   await add_new_event(event, logic, client)
+  await client.views_update(
+      view_id=body["view"]["previous_view_id"],
+      view=get_manage_events_modal(logic)
+  )
 
 async def add_new_event(event: Event, logic: AppLogic, client: WebClient):
   logic.update_events([event])

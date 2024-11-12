@@ -348,11 +348,6 @@ def get_setup_test_modal_details_fields_multi(test: TestConfigMulti, need_clean_
     })
 
   return blocks
-  
-def get_setup_test_modal_details_fields_test(test: TestConfig) -> list:
-  return [
-    # TODO
-  ]
 
 
 # view processing

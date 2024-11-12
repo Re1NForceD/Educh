@@ -37,7 +37,7 @@ async def handle_message_event(body, logger):
   logger.info(body)
 
 
-def register_app_events(app, logic):
+def register_app_events(app, logic: AppLogic):
   @app.use
   async def middleware(context, next):
     context["logic"] = logic
@@ -47,6 +47,7 @@ def register_app_events(app, logic):
   async def handle_start_course(context, body, logger, client: WebClient, ack: Ack):
     await ack()
     logic.start_course()
+    await update_home_views(logic, app.client)
     start_course_loop(logic, client)
 
   app.action("click_take_test")(handle_take_test)
@@ -57,6 +58,10 @@ def register_app_events(app, logic):
   app.event("team_join")(member_join)
   app.event("app_home_opened")(app_home_opened)
   app.event("message")(handle_message_event)
+  
+  app.action("manage_events")(handle_manage_events)
+  app.action("manage_users")(handle_manage_users)
+  app.action("manage_submitions")(handle_manage_submitions)
 
   app.action("click_add_event")(handle_add_course)
   app.view("view_event_setup")(modal_event_setup_callback)
