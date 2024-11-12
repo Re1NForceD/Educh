@@ -119,21 +119,17 @@ class AppLogic:
     self.update_essensials(started_at=start_time)
     return True
   
-  def submit_test_answers(self, event_id: int, user_id: str, answers: dict[str, list[str]]):
-    logger.debug(f"submit_test_answers {user_id} - {event_id} - {answers}")
+  def event_submition(self, event_id: int, user_id: str, submition: dict[str, list[str]]):
+    logger.debug(f"event_submition {user_id} - {event_id} - {submition}")
     event: Event = self.course.get_event(event_id)
     
     if event is None:
       logger.error(f"cant find event: {event_id}")
       return
     
-    r = self.send_req(func=requests.post, path=ep_put_event_submition, json={"event_id": event_id, "user_id": user_id, "answers": answers})
+    r = self.send_req(func=requests.post, path=ep_put_event_submition, json={"event_id": event_id, "user_id": user_id, "submition": submition})
     if not r.ok:
       raise RuntimeError("can't put_event_submition")
     
     r_data=r.json()
-    self.course.colect_tests_results({event_id: {user_id: {"answers": answers, "result": r_data["result"]}}})
-    
-  def user_submit_assignment(self, event: AssignmentEvent, user_id: str, files):
-    # TODO: save submition on api
-    pass
+    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"]}}})

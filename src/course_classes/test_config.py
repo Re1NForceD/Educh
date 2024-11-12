@@ -45,7 +45,7 @@ class TestConfigSignle(TestConfig):
 
     if data is not None:
       self.variants = data.get("variants", {})
-      self.ans_hash = next(iter(self.variants))
+      self.ans_hash = data.get("ans", "")
     else:
       self.set_variants(variants)
 
@@ -58,7 +58,7 @@ class TestConfigSignle(TestConfig):
     
     for var in variants:
       self.variants[hashlib.md5(var.encode('utf-8')).hexdigest()] = var
-    self.ans_hash = next(iter(self.variants))
+    self.ans_hash = hashlib.md5(variants[0].encode('utf-8')).hexdigest()
 
   def add_variant(self, variant: str):
     var_hash = hashlib.md5(variant.encode('utf-8')).hexdigest()

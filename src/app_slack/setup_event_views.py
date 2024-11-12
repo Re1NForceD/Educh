@@ -37,22 +37,12 @@ async def handle_edit_event(context, client: WebClient, ack: Ack, body, logger):
   event_id = int(body["actions"][0]["value"])
   logic: AppLogic = context["logic"]
 
-  event_orig: Event = logic.course.remove_event(event_id)
-  event_copy: Event = copy.deepcopy(event_orig)
+  event_copy: Event = copy.deepcopy(logic.course.get_event(event_id))
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
-      view=get_setup_event_modal(event_copy, True)
+      view=get_setup_event_modal(event_copy)
   )
-  add_event_in_process(user_id, resp["view"]["id"], event_copy, event_orig)
-
-async def modal_event_closed_callback(context, client: WebClient, ack: Ack, body, logger):
-  await ack()
-  user_id = body["user"]["id"]
-  logic: AppLogic = context["logic"]
-  event_data = pop_event_in_process(user_id)
-  if event_data is not None and event_data[2] is not None:
-    logic.course.add_event(event_data[2])
-    await update_home_views(logic, client)
+  add_event_in_process(user_id, resp["view"]["id"], event_copy)
 
 async def handle_remove_event(context, client, ack: Ack, body, logger):
   await ack()
@@ -113,11 +103,10 @@ def get_event_type_field(event: Event):
       }
     }
 
-def get_setup_event_modal(event: Event=None, is_can_cancel: bool = False):
+def get_setup_event_modal(event: Event=None):
   modal = {
     "type": "modal",
     "callback_id": "view_event_setup",
-    "notify_on_close": is_can_cancel,
     "title": {
       "type": "plain_text",
       "text": "Setup event"
@@ -277,6 +266,9 @@ def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
     }
   ]
 
+  if event.duration_m is not None:
+    blocks[0]["initial_value"] = event.duration_m
+
   if len(event.configs) == 0:
     blocks.append({
       "type": "section",
@@ -419,9 +411,14 @@ async def modal_event_setup_callback(context, ack: Ack, body, client, logger):
   set_event_details(event, modal_values)
   await add_new_event(event, logic, client)
 
-async def add_new_event(event: Event, logic: AppLogic, client):
+async def add_new_event(event: Event, logic: AppLogic, client: WebClient):
   logic.update_events([event])
   clear_next_event()
+  if event.is_not_added():
+    await new_events_added(logic, [event], client)
+
+async def new_events_added(logic: AppLogic, new_events: list[Event], client: WebClient):
+  # await notify_new_events(logic, new_events, client) # TODO
   await update_home_views(logic, client)
 
 def set_event_details(event: Event, modal_values: dict):

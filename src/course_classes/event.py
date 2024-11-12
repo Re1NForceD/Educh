@@ -28,6 +28,9 @@ class Event():
     if details is not None:
       self.from_dict_details(details)
 
+  def is_not_added(self):
+    return self.id == 0
+
   def from_dict_details(self, details: dict):
     pass
 

@@ -1,13 +1,24 @@
+from slack_sdk import WebClient
 from course_classes import *
 from app_logic_api import *
 
+async def update_home_techers_user(logic: AppLogic, user_id: str, client: WebClient):
+  for user in logic.course.users.values():
+    if user.platform_id == user_id or user.is_teacher():
+      try:
+        await client.views_publish(
+            user_id=user.platform_id,
+            view=get_home_view(user, logic)
+        )
+      except Exception as e:
+        logger.error(f"Error publishing home tab: {e}")
+
 async def update_home_views(logic: AppLogic, client):
   for user in logic.course.users.values():
-    if user.is_teacher():
-      await client.views_publish(
-          user_id=user.platform_id,
-          view=get_home_view(user, logic)
-      )
+    await client.views_publish(
+        user_id=user.platform_id,
+        view=get_home_view(user, logic)
+    )
 
 def get_home_view(user: User, logic: AppLogic):
   blocks = []

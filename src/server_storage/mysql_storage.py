@@ -226,5 +226,5 @@ class MySQLStorage(DataStorage):
   
   def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
     cnx = self.get_cnx()
-    self.exec_insert(cnx, f"insert into course_event_submition (event_id, user_id, submition, result) values({event_id}, '{user_id}', '{json.dumps(submition)}', {result})")
+    self.exec_insert(cnx, f"insert into course_event_submition (event_id, user_id, submition {',result' if result is not None else ''}) values({event_id}, '{user_id}', '{json.dumps(submition)}'{',{}'.format(result) if result is not None else ''})")
     cnx.commit()

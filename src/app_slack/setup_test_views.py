@@ -569,7 +569,7 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
     elif "multi_test_ans" in value:
       answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
 
-  logic.submit_test_answers(event_id, user_id, answers)
+  await handle_user_submission(logic, event_id, user_id, answers, client)
 
 async def handle_submit_assignment(context, body, logger, client: WebClient, ack: Ack):
   await ack()
@@ -580,8 +580,8 @@ async def handle_submit_assignment(context, body, logger, client: WebClient, ack
   event_id = int(body["actions"][0]["value"])
   event: Event = logic.course.get_event(event_id)
 
-  if event.type != E_TEST:
-    logger.error(f"try to take test from event {event_id} but it is not a test event")
+  if event.type != E_ASSIGNMENT:
+    logger.error(f"try to start submition from event {event_id} but it is not an assignment event")
 
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
@@ -640,16 +640,11 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
   event_id = int(body["view"]["private_metadata"])
   modal_values = body["view"]["state"]["values"]
 
-  event: Event = logic.course.get_event(event_id)
-  if event is None or event.type != E_ASSIGNMENT:
-    logger.error(f"cant find assignment event: {event_id}")
-    return
+  await handle_user_submission(logic, event_id, user_id, {"files": modal_values["file_submission"]["submitted_assignment"]["files"]}, client)
 
-  await notify_submission(logic, user_id, event, modal_values["file_submission"]["submitted_assignment"]["files"], client)
-
-async def notify_submission(logic: AppLogic, user_id: str, event: AssignmentEvent, files, client: WebClient):
-  logic.user_submit_assignment(event, user_id, files)
-  await notify_teachers(logic, event, user_id, files, client)
+async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
+  logic.event_submition(event_id, user_id, submition)
+  # await notify_teachers(logic, event_id, user_id, submition, client) # TODO
 
 async def notify_teachers(logic: AppLogic, event: AssignmentEvent, user_id: str, files, client: WebClient):
   users_to_notify: list[str] = []

@@ -117,7 +117,7 @@ create table if not exists course_event_submition
   event_id   INT UNSIGNED NOT NULL,
   user_id    VARCHAR(64)  NOT NULL,
   submition  text         not null,
-  result     int unsigned not null,
+  result     int unsigned     null,
   
   created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
   

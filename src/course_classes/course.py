@@ -106,8 +106,8 @@ class Course:
     for user_data in data["users"]:
       self.add_user(User(data=user_data))
 
-  def colect_tests_results(self, events_results: dict): # {event_id: {user_id: {answers, result}}}
-    for event_id, results in events_results.items():
+  def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {answers, result}}}
+    for event_id, results in event_submitions.items():
       event: TestConfig = self.get_event(event_id)
       if event is None:
         logger.warning(f"try to collect tests results but event not found: {event_id}")
@@ -134,8 +134,9 @@ class Course:
 
     if event is None:
       logger.error(f"no event found: {event_id}")
+      return None
 
     if event.type == E_TEST:
       return event.get_result(submition)
     
-    return 0
+    return None
