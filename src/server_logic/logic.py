@@ -24,8 +24,8 @@ class Logic:
   def get_course_data(self, course_id: int):
     return self._storage.get_course_data(course_id)
 
-  def update_users(self, course_id: int, users: list[User]):
-    self._storage.update_users(course_id, users)
+  def update_users(self, course: Course, users: list[User]):
+    self._storage.update_users(course, users)
 
   def update_essensials(self, course_id: int, channel_id: str=None, started_at: datetime.datetime=None):
     self._storage.update_essensials(course_id, channel_id, started_at)

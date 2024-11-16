@@ -113,10 +113,13 @@ class MySQLStorage(DataStorage):
 
     return course
   
-  def update_users(self, course_id: int, users: list[User]) -> None:
+  def update_users(self, course: Course, users: list[User]) -> None:
     cnx = self.get_cnx()
     for user in users:
-      self.exec_insert(cnx, f"insert into course_user (course_id, platform_id, name, role_id) values({course_id}, '{user.platform_id}', '{user.name}', {user.role})")
+      if course.get_user(user.platform_id) is None:
+        self.exec_insert(cnx, f"insert into course_user (course_id, platform_id, name, role_id) values({course.id}, '{user.platform_id}', '{user.name}', {user.role})")
+      else:
+        self.exec_update(cnx, f"update course_user set name='{user.name}', role_id={user.role} where course_id={course.id} and platform_id='{user.platform_id}'")
     cnx.commit()
 
   def update_essensials(self, course_id: int, channel_id: str=None, started_at: datetime.datetime=None):

@@ -150,7 +150,7 @@ def get_users_section_blocks(logic: AppLogic):
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"Users on Course: *Teachers:* {teachers_c}, *Learners:* {learners_c}"
+        "text": f"Users on course: *Teachers:* {teachers_c}, *Learners:* {learners_c}"
       },
       "accessory": {
         "type": "button",
@@ -196,7 +196,7 @@ async def handle_manage_events(context, client: WebClient, ack: Ack, body, logge
 def get_manage_events_modal(logic: AppLogic):
   return {
     "type": "modal",
-    "callback_id": "view_event_setup",
+    "callback_id": "view_manage_events",
     "title": {
       "type": "plain_text",
       "text": "Manage events"
@@ -280,7 +280,295 @@ async def handle_manage_users(context, client: WebClient, ack: Ack, body, logger
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
       view=get_manage_users_modal(logic)
-  ) # TODO update modals on users updates
+  )
+
+def get_manage_users_modal(logic: AppLogic):
+  teachers: list[User] = []
+  learners: list[User] = []
+  for user in logic.course.users.values():
+    if user.is_teacher():
+      teachers.append(user)
+    elif user.is_learner():
+      learners.append(user)
+
+  return {
+    "type": "modal",
+    "callback_id": "view_manage_users",
+    "title": {
+      "type": "plain_text",
+      "text": "Manage users"
+    },
+    "close": {
+      "type": "plain_text",
+      "text": "Close"
+    },
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+        "text": f"Users on course: *Teachers:* {len(teachers)}, *Learners:* {len(learners)}"
+        },
+      },
+      {
+        "type": "divider"
+      },
+      *get_users_list_blocks(logic, teachers, learners),
+    ]
+  }
+  
+def get_users_list_blocks(logic: AppLogic, teachers: list[User], learners: list[User]):
+  blocks = [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Teachers:* {len(teachers)}"
+      },
+      "accessory": {
+        "type": "button",
+        "style": "primary",
+        "text": {
+          "type": "plain_text",
+          "text": "Add teacher",
+        },
+        "value": f"{user_roles_to_code[U_TEACHER]}",
+        "action_id": "click_add_user" # TODO add handle
+      }
+    },
+  ]
+
+  for user in teachers:
+    blocks += get_user_fields(user)
+
+  blocks += [
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Learners:* {len(learners)}"
+      },
+      "accessory": {
+        "type": "button",
+        "style": "primary",
+        "text": {
+          "type": "plain_text",
+          "text": "Add learner",
+        },
+        "value": f"{user_roles_to_code[U_LEARNER]}",
+        "action_id": "click_add_user" # TODO add handle
+      }
+    },
+  ]
+
+  for user in learners:
+    blocks += get_user_fields(user)
+  
+  return blocks
+
+def get_user_fields(user: User):
+  return [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Username:* {user.name}, *Role:* {user_roles_str[user.role]}"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Edit",
+          },
+          "value": f"{user.platform_id}",
+          "action_id": "click_edit_user" # TODO add handle
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Remove",
+          },
+          "style": "danger",
+          "value": f"{user.platform_id}",
+          "action_id": "click_remove_user" # TODO add handle
+        },
+      ]
+    },
+    {
+      "type": "divider",
+    },
+  ]
+
+async def handle_add_user(client: WebClient, ack: Ack, body, logger):
+  await ack()
+  role: int = user_roles_from_code[body["actions"][0]["value"]]
+  resp = await client.views_push(
+      trigger_id=body["trigger_id"],
+      view=get_add_user_modal(role)
+  )
+
+def get_add_user_modal(role: int):
+  return {
+    "type": "modal",
+    "callback_id": "view_add_users",
+    "private_metadata": user_roles_to_code[role],
+    "title": {
+      "type": "plain_text",
+      "text": f"Add {'learners' if role == U_LEARNER else 'teachers'}"
+    },
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit"
+    },
+    "close": {
+      "type": "plain_text",
+      "text": "Close"
+    },
+    "blocks": [
+      {
+        "type": "input",
+        "block_id": "users_select",
+        "label": {
+          "type": "plain_text",
+          "text": "Select users to add:"
+        },
+        "element": {
+          "type": "multi_external_select",
+          "action_id": "users",
+          "min_query_length": 0,
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select users"
+          },
+        },
+      }
+    ]
+  }
+
+async def users_options(ack, context, body):
+  logic: AppLogic = context["logic"]
+  role: int = user_roles_from_code[body["view"]["private_metadata"]]
+  await ack({"options": get_users_model(role, logic)})
+
+def get_users_model(role: int, logic: AppLogic):
+  model = []
+  for user in logic.course.users.values():
+    if user.role < role:
+      model.append(get_user_option(user))
+  return model
+
+def get_user_option(user: User):
+  return {
+    "text": {
+      "type": "plain_text",
+      "text": f"{user.name} - {user_roles_str[user.role]}",
+      "emoji": True
+    },
+    "value": user.platform_id
+  }
+
+async def modal_add_users_callback(ack: Ack, context, body, client: WebClient):
+  await ack()
+  logic: AppLogic = context["logic"]
+  role: int = user_roles_from_code[body["view"]["private_metadata"]]
+  
+  users: list[str] = []
+  for option in body["view"]["state"]["values"]["users_select"]["users"]["selected_options"]:
+    users.append(option["value"])
+  
+  logic.update_users_role(role, users)
+  logic.update_users()
+  await client.views_update(
+      view_id=body["view"]["previous_view_id"],
+      view=get_manage_users_modal(logic)
+  )
+
+async def handle_remove_user(client: WebClient, ack: Ack, body, logger, context):
+  await ack()
+  logic: AppLogic = context["logic"]
+  user_id = body["actions"][0]["value"]
+  
+  user: User = logic.course.get_user(user_id)
+  if user is not None and user.role != U_MASTER:
+    logic.update_users_role(U_GUEST, [user_id])
+    logic.update_users()
+    resp = await client.views_update(
+        view_id=body["view"]["id"],
+        view=get_manage_users_modal(logic)
+    )
+
+async def handle_edit_user(client: WebClient, ack: Ack, body, logger, context):
+  await ack()
+  logic: AppLogic = context["logic"]
+  user_id = body["actions"][0]["value"]
+  resp = await client.views_push(
+      trigger_id=body["trigger_id"],
+      view=get_edit_user_modal(logic.course.get_user(user_id))
+  )
+
+async def modal_edit_user_callback(ack: Ack, context, body, client: WebClient):
+  await ack()
+  logic: AppLogic = context["logic"]
+  user_id: str = body["view"]["private_metadata"]
+  
+  username: str = body["view"]["state"]["values"]["user_name_input"]["user_name"]["value"]
+
+  user: User = logic.course.get_user(user_id)
+  if user is not None and user.name != username:
+    user.name = username
+    logic.update_users()
+    await client.views_update(
+        view_id=body["view"]["previous_view_id"],
+        view=get_manage_users_modal(logic)
+    )
+
+def get_edit_user_modal(user: User):
+  return {
+    "type": "modal",
+    "callback_id": "view_edit_user",
+    "private_metadata": user.platform_id,
+    "title": {
+      "type": "plain_text",
+      "text": f"Edit user {user.name}"
+    },
+    "submit": {
+      "type": "plain_text",
+      "text": "Submit"
+    },
+    "close": {
+      "type": "plain_text",
+      "text": "Close"
+    },
+    "blocks": [
+      {
+        "type": "input",
+        "block_id": "user_name_input",
+        "element": {
+          "type": "plain_text_input",
+          "action_id": "user_name",
+          "min_length": 5,
+          "max_length": 255,
+          "initial_value": user.name,
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Enter username"
+          },
+        },
+        "label": {
+          "type": "plain_text",
+          "text": "User name",
+        },
+      },
+    ]
+  }
 
 async def handle_manage_submitions(context, client: WebClient, ack: Ack, body, logger):
   await ack()

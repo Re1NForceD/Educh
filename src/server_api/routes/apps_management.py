@@ -72,11 +72,9 @@ def app_update_users():
 
   users = []
   for user_data in users_list:
-    user = User(data=user_data)
-    if not course.is_user_id_exists(user.platform_id): # TODO update existed users
-      users.append(user)
+    users.append(User(data=user_data))
 
-  logic.update_users(g.course_id, users)
+  logic.update_users(course, users)
 
   course = logic.get_course_data(g.course_id)
   return {"course_data": course.to_dict()}, 200

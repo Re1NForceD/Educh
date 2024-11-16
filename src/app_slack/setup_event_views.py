@@ -23,7 +23,7 @@ def pop_event_in_process(user_id: str):
 def add_event_in_process(user_id: str, view_id: str, event: Event, orig: Event=None):
   events_in_process[user_id] = [view_id, event, orig]
 
-async def handle_add_course(client: WebClient, ack: Ack, body, logger):
+async def handle_add_event(client: WebClient, ack: Ack, body, logger):
   await ack()
   resp = await client.views_push(
       trigger_id=body["trigger_id"],

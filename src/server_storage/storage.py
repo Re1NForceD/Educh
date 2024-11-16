@@ -22,7 +22,7 @@ class DataStorage():
   def get_course_data(self, course_id: int) -> Course:
     pass
 
-  def update_users(self, course_id: int, users: list[User]) -> None:
+  def update_users(self, course: Course, users: list[User]) -> None:
     pass
 
   def update_essensials(self, course_id: int, channel_id: str=None, started_at: datetime.datetime=None):

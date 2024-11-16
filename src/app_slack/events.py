@@ -63,7 +63,7 @@ def register_app_events(app, logic: AppLogic):
   app.action("manage_users")(handle_manage_users)
   app.action("manage_submitions")(handle_manage_submitions)
 
-  app.action("click_add_event")(handle_add_course)
+  app.action("click_add_event")(handle_add_event)
   app.view("view_event_setup")(modal_event_setup_callback)
   app.options("event_type")(event_type_options)
   app.action("click_edit_event")(handle_edit_event)
@@ -80,3 +80,10 @@ def register_app_events(app, logic: AppLogic):
   app.action("click_add_multiple_variant_correct")(handle_add_multi_variant_correct)
   app.action("click_add_multiple_variant_incorrect")(handle_add_multi_variant_incorrect)
   app.action("click_remove_multi_variant")(handle_remove_multi_variant)
+  
+  app.action("click_add_user")(handle_add_user)
+  app.options("users")(users_options)
+  app.view("view_add_users")(modal_add_users_callback)
+  app.view("view_edit_user")(modal_edit_user_callback)
+  app.action("click_edit_user")(handle_edit_user)
+  app.action("click_remove_user")(handle_remove_user)

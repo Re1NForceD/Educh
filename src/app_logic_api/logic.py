@@ -74,6 +74,10 @@ class AppLogic:
     
     r_data=r.json()
     self.course = Course(data=r_data["course_data"])
+
+  def update_users_role(self, new_role: int, users: list[str]):
+    for user_id in users:
+      self.course.get_user(user_id).role = new_role
   
   def update_essensials(self, channel_id: str=None, started_at: datetime.datetime=None):
     r = self.send_req(func=requests.put, path=ep_update_essensials, json={"channel_id":channel_id,"started_at": datetime_to_str(started_at)})
