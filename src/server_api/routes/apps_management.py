@@ -160,8 +160,15 @@ def app_remove_events():
   return {"course_data": course.to_dict()}, 200
 
 
-@ep_app_verified.route("/put_event_submition", methods=["POST"])
-def app_put_event_submition():
+@ep_app_verified.route("/event_submitions", methods=["GET"])
+def app_get_event_submitions():
+  logic: Logic = current_app.config['logic']  
+  submitions: dict[int, dict] = logic.get_event_submitions(g.course_id)
+  return {"submitions": submitions}, 200
+
+
+@ep_app_verified.route("/event_submitions", methods=["POST"])
+def app_post_event_submition():
   logic: Logic = current_app.config['logic']
   course = logic.get_course_data(g.course_id)
 
@@ -172,6 +179,6 @@ def app_put_event_submition():
   if "submition" not in request.json:
     raise BadRequest("not found field: submition")
   
-  result = logic.put_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("result", None))
+  result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("result", None))
   return {"result": result}, 200
 

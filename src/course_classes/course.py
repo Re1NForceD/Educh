@@ -114,28 +114,31 @@ class Course:
           ungraded += 1
     return ungraded
 
-  def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {answers, result}}}
-    for event_id, results in event_submitions.items():
-      event: TestConfig = self.get_event(event_id)
+  def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {submition, result}}}
+    for event_id, submitions in event_submitions.items():
+      if not isinstance(event_id, int):
+        event_id = int(event_id)
+
+      event: Event = self.get_event(event_id)
       if event is None:
-        logger.warning(f"try to collect tests results but event not found: {event_id}")
+        logger.warning(f"try to collect submitions but event not found: {event_id}")
         continue
       
-      event_result: dict = self.submitions.get(event_id, None)
-      if event_result is None:
+      event_submition: dict = self.submitions.get(event_id, None)
+      if event_submition is None:
         self.submitions[event_id] = {}
-        event_result = self.submitions.get(event_id, None)
+        event_submition = self.submitions.get(event_id, None)
       
-      for user_id, result in results.items():
+      for user_id, submition in submitions.items():
         user: User = self.get_user(user_id)
-        if user is None or user != U_LEARNER:
-          logger.warning(f"try to collect results for invalid user: {user} - {user.role if user is not None else E_INVALID}")
+        if user is None: # or user != U_LEARNER:
+          logger.warning(f"try to submition for invalid user: {user} - {user.role if user is not None else E_INVALID}")
           continue
         
-        if user_id in event_result:
-          logger.warning(f"update user {user_id} event result")
+        if user_id in event_submition:
+          logger.warning(f"update user {user_id} event submition")
 
-        event_result[user_id] = result
+        event_submition[user_id] = submition
 
   def grade_submition(self, event_id, submition):
     event: Event = self.get_event(event_id)

@@ -87,3 +87,9 @@ def register_app_events(app, logic: AppLogic):
   app.view("view_edit_user")(modal_edit_user_callback)
   app.action("click_edit_user")(handle_edit_user)
   app.action("click_remove_user")(handle_remove_user)
+
+  app.action("click_add_submition")(handle_add_submition)
+  app.options("event")(event_options)
+  app.options("learners")(learners_options)
+  app.view("view_add_submition")(modal_add_submition_callback)
+  app.action("click_show_submitions_per_event")(handle_show_submitions_per_event)

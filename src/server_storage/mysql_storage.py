@@ -227,6 +227,19 @@ class MySQLStorage(DataStorage):
       self.remove_event(cnx, course_id, event)
     cnx.commit()
   
+  def get_event_submitions(self, course_id: int):
+    cnx = self.get_cnx()
+    submitions: dict[int, dict] = {}
+    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.result from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
+      submition_id = submition[0]
+      event_id = submition[1]
+      user_id = submition[2]
+      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "result": submition[4]}
+      if submitions.get(event_id, None) is None:
+        submitions[event_id] = {}
+      submitions[event_id][user_id] = submition_d
+    return submitions
+  
   def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
     cnx = self.get_cnx()
     self.exec_insert(cnx, f"insert into course_event_submition (event_id, user_id, submition {',result' if result is not None else ''}) values({event_id}, '{user_id}', '{json.dumps(submition)}'{',{}'.format(result) if result is not None else ''})")

@@ -114,6 +114,7 @@ create table if not exists course_user
 
 create table if not exists course_event_submition
 (
+  id         int unsigned not null auto_increment primary key,
   event_id   INT UNSIGNED NOT NULL,
   user_id    VARCHAR(64)  NOT NULL,
   submition  text         not null,
