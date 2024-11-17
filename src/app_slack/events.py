@@ -93,3 +93,5 @@ def register_app_events(app, logic: AppLogic):
   app.options("learners")(learners_options)
   app.view("view_add_submition")(modal_add_submition_callback)
   app.action("click_show_submitions_per_event")(handle_show_submitions_per_event)
+  app.action("click_see_submition")(handle_see_submition)
+  app.view("view_see_submition")(modal_see_submition_callback)

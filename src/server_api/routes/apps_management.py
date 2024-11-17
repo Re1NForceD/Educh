@@ -179,6 +179,21 @@ def app_post_event_submition():
   if "submition" not in request.json:
     raise BadRequest("not found field: submition")
   
-  result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("result", None))
-  return {"result": result}, 200
+  id, result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("result", None))
+  return {"id": id, "result": result}, 200
+
+
+@ep_app_verified.route("/event_submitions", methods=["PUT"])
+def app_grade_event_submition():
+  logic: Logic = current_app.config['logic']
+
+  if "submition_id" not in request.json:
+    raise BadRequest("not found field: submition_id")
+  if "submitter_id" not in request.json:
+    raise BadRequest("not found field: submitter_id")
+  if "result" not in request.json:
+    raise BadRequest("not found field: result")
+  
+  logic.grade_event_submition(request.json["submition_id"], request.json["submitter_id"], request.json["result"])
+  return {}, 200
 

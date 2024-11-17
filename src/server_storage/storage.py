@@ -45,3 +45,6 @@ class DataStorage():
   
   def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
     pass
+  
+  def grade_event_submition(self, submition_id, submitter_id, result):
+    pass

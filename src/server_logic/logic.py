@@ -48,5 +48,8 @@ class Logic:
   def post_event_submition(self, course: Course, event_id: int, user_id: str, submition: dict, result):
     if result is None:
       result = course.grade_submition(event_id, submition)
-    self._storage.save_event_submition(course.id, event_id, user_id, submition, result)
-    return result
+    id = self._storage.save_event_submition(course.id, event_id, user_id, submition, result)
+    return [id, result]
+  
+  def grade_event_submition(self, submition_id, submitter_id, result):
+    self._storage.grade_event_submition(submition_id, submitter_id, result)

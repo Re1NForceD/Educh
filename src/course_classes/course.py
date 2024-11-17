@@ -20,6 +20,7 @@ class Course:
       self.users: dict[str, User] = {}
 
     self.submitions: dict[int, dict[str, dict]] = {}
+    self.submitions_by_id: dict[int, list[int, str, dict]] = {}
 
   def is_can_be_worked_with(self) -> bool:
     if self.channel_id is None:
@@ -108,10 +109,9 @@ class Course:
 
   def get_all_ungraded_submitions(self):
     ungraded = 0
-    for per_event in self.submitions.values():
-      for per_user in per_event.values():
-        if per_user["result"] is None:
-          ungraded += 1
+    for submition in self.submitions_by_id.values():
+      if submition[2]["result"] is None:
+        ungraded += 1
     return ungraded
 
   def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {submition, result}}}
@@ -139,6 +139,12 @@ class Course:
           logger.warning(f"update user {user_id} event submition")
 
         event_submition[user_id] = submition
+        self.submitions_by_id[submition["id"]] = [event_id, user_id, submition]
+
+  def update_submition(self, submition_id, submitter_id, result):
+    submition = self.submitions_by_id[submition_id][2]
+    submition["submitter"] = submitter_id
+    submition["result"] = result
 
   def grade_submition(self, event_id, submition):
     event: Event = self.get_event(event_id)

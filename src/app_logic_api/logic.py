@@ -137,7 +137,7 @@ class AppLogic:
       raise RuntimeError("can't post event_submitions")
     
     r_data=r.json()
-    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"]}}})
+    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"], "id": r_data["id"]}}})
 
   def request_submitions(self):
     r = self.send_req(func=requests.get, path=ep_event_submitions)
@@ -146,3 +146,10 @@ class AppLogic:
     
     r_data=r.json()
     self.course.colect_submition(r_data["submitions"])
+
+  def grade_event_submition(self, submitter_id: str, submition_id: int, result: int):
+    r = self.send_req(func=requests.put, path=ep_event_submitions, json={"submition_id": submition_id, "submitter_id": submitter_id, "result": result})
+    if not r.ok:
+      raise RuntimeError("can't put event_submitions")
+    
+    self.course.update_submition(submition_id, submitter_id, result)
