@@ -66,15 +66,18 @@ class ResourcesEvent(Event):
 class ClassEvent(Event):
   def __init__(self, id: int, name: str, start_time: datetime.datetime, info: str, published: bool, details: dict):
     self.duration_m: int = None
+    self.url: str = None
     super().__init__(id, name, start_time, info, published, details)
     self.type = E_CLASS
 
   def from_dict_details(self, details: dict):
     self.duration_m = details["duration_m"]
+    self.url = details["url"]
 
   def to_dict_details(self) -> dict:
     return {
       "duration_m": self.duration_m,
+      "url": self.url,
     }
 
 

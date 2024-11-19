@@ -229,6 +229,22 @@ def get_setup_event_modal_details_fields_class() -> list:
         "text": "Event duration (minutes)"
       }
     },
+    {
+      "type": "input",
+      "block_id": "event_url_select",
+      "element": {
+        "type": "url_text_input",
+        "action_id": "event_url",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Enter url to class"
+        },
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Class URL",
+      }
+    },
   ]
   
 def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
@@ -323,30 +339,30 @@ def get_test_fields(test: TestConfig):
         "text": get_test_info(test)
       }
     },
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Edit",
-					},
-					"value": test.calc_hash(),
-					"action_id": "click_edit_test"
-				},
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Remove",
-					},
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Edit",
+          },
+          "value": test.calc_hash(),
+          "action_id": "click_edit_test"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Remove",
+          },
           "style": "danger",
-					"value": test.calc_hash(),
-					"action_id": "click_remove_test"
-				},
-			]
-		},
+          "value": test.calc_hash(),
+          "action_id": "click_remove_test"
+        },
+      ]
+    },
     {
       "type": "divider",
     },
@@ -446,10 +462,12 @@ def set_event_details_resources(event: ResourcesEvent, modal_values: dict):
 
 def set_event_details_class(event: ClassEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])
+  event_url = modal_values["event_url_select"]["event_url"]["value"]
 
-  logger.info(f"got class details: {event_duration}")
+  logger.info(f"got class details: {event_duration}, {event_url}")
 
   event.duration_m = event_duration
+  event.url = event_url
 
 def set_event_details_test(event: TestEvent, modal_values: dict):
   event_duration = int(modal_values["event_duration_select"]["event_duration"]["value"])

@@ -84,6 +84,22 @@ def get_blocks_event_class(event: ClassEvent):
         "text": f"*Duration:* {event.duration_m} m"
       }
     },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Enter class",
+          },
+          "url": event.url,
+          "style": "primary",
+          "value": f"{event.id}",
+          "action_id": "click_enter_class"
+        },
+      ]
+    }
   ]
 
 def get_blocks_event_test(event: TestEvent):

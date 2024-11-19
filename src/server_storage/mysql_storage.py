@@ -79,11 +79,12 @@ class MySQLStorage(DataStorage):
     event = get_event(id=db_row[0], type=db_row[1], name=db_row[2], start_time=db_row[3], info=db_row[4], published=db_row[5])
     if event.type == E_RESOURCES: # cols: none
       pass
-    elif event.type == E_CLASS: # cols: 6
+    elif event.type == E_CLASS: # cols: 6, 7
       event.duration_m = db_row[6]
-    elif event.type == E_TEST: # cols: 7, 8
-      event.duration_m = db_row[7]
-      event.from_dict_configs(json.loads(db_row[8]))
+      event.url = db_row[7]
+    elif event.type == E_TEST: # cols: 8, 9
+      event.duration_m = db_row[8]
+      event.from_dict_configs(json.loads(db_row[9]))
     elif event.type == E_ASSIGNMENT: # cols: none
       pass
     return event
@@ -100,7 +101,7 @@ class MySQLStorage(DataStorage):
     course = Course(id=general_info[0][0], name=general_info[0][1], channel_id=general_info[0][2], started_at=general_info[0][3])
     
     events = self.exec_select(
-        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, ce.info, ce.published, cedc.duration_m, cedt.duration_m, cedt.configs from course_event ce left outer join course_event_details_resources cerd on ce.id = cerd.event_id left outer join course_event_details_class cedc on ce.id = cedc.event_id left outer join course_event_details_test cedt on ce.id = cedt.event_id left outer join course_event_details_assignment cera on ce.id = cera.event_id where ce.course_id = {course_id} order by ce.start_time")
+        cnx, f"select ce.id, ce.event_type_id, ce.name, ce.start_time, ce.info, ce.published, cedc.duration_m, cedc.url, cedt.duration_m, cedt.configs from course_event ce left outer join course_event_details_resources cerd on ce.id = cerd.event_id left outer join course_event_details_class cedc on ce.id = cedc.event_id left outer join course_event_details_test cedt on ce.id = cedt.event_id left outer join course_event_details_assignment cera on ce.id = cera.event_id where ce.course_id = {course_id} order by ce.start_time")
     if len(events):
       for event_data in events:
         course.add_event(self.get_event(event_data))
@@ -147,7 +148,7 @@ class MySQLStorage(DataStorage):
     self.exec_insert(cnx, f"insert into course_event_details_resources (event_id) values({event.id})")
 
   def insert_event_details_class(self, cnx, event: ClassEvent):
-    self.exec_insert(cnx, f"insert into course_event_details_class (event_id, duration_m) values({event.id}, {event.duration_m})")
+    self.exec_insert(cnx, f"insert into course_event_details_class (event_id, duration_m, url) values({event.id}, {event.duration_m}, '{event.url}')")
 
   def insert_event_details_test(self, cnx, event: TestEvent):
     self.exec_insert(cnx, f"insert into course_event_details_test (event_id, duration_m, configs) values({event.id}, {event.duration_m}, '{json.dumps(event.to_dict_configs())}')")
@@ -186,10 +187,10 @@ class MySQLStorage(DataStorage):
     # self.exec_update(cnx, f"update course_event_details_resources set info='{event.info}' where event_id={event.id}")
 
   def update_event_details_class(self, cnx, event: ClassEvent):
-    self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m} where event_id={event.id}")
+    self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m}, url='{event.url}' where event_id={event.id}")
 
   def update_event_details_test(self, cnx, event: TestEvent):
-    self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
+    self.exec_update(cnx, f"update course_event_details_test set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
 
   def update_event_details_assignment(self, cnx, event: AssignmentEvent):
     pass

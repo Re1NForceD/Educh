@@ -56,6 +56,7 @@ create table if not exists course_event_details_class
 (
   event_id   INT UNSIGNED NOT NULL PRIMARY KEY,
   duration_m int unsigned not null,
+  url        text         not null,
   
   created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
   edited_at  TIMESTAMP not null default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

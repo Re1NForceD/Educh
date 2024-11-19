@@ -670,3 +670,8 @@ async def notify_teachers(logic: AppLogic, event: AssignmentEvent, user_id: str,
           },
         ]
       ) # TODO: set grade
+
+async def handle_enter_class(context, body, logger, client: WebClient, ack: Ack):
+  await ack()
+  logger.info(f"user {body['user']['id']} go to class")
+  # TODO: track enter class
