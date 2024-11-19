@@ -230,11 +230,15 @@ class MySQLStorage(DataStorage):
   def get_event_submitions(self, course_id: int):
     cnx = self.get_cnx()
     submitions: dict[int, dict] = {}
-    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.result from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
+    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.result, ces.created_at from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
       submition_id = submition[0]
+      if submition_id is None:
+        logger.warning(f"got invalid submition row: {submition}")
+        continue
+      
       event_id = submition[1]
       user_id = submition[2]
-      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "result": submition[4]}
+      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "result": submition[4], "date": datetime_to_str(submition[5])}
       if submitions.get(event_id, None) is None:
         submitions[event_id] = {}
       submitions[event_id][user_id] = submition_d

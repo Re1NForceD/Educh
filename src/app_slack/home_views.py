@@ -4,7 +4,7 @@ from slack_bolt import Ack
 from course_classes import *
 from app_logic_api import *
 
-async def update_home_techers_user(logic: AppLogic, user_id: str, client: WebClient):
+async def update_home_teachers_user(logic: AppLogic, user_id: str, client: WebClient):
   for user in logic.course.users.values():
     if user.platform_id == user_id or user.is_teacher():
       try:
@@ -897,7 +897,7 @@ def get_users_submitions_block(logic: AppLogic, submitions: dict[str, dict]):
   return blocks
 
 def get_submition_blocks(logic: AppLogic, user: User, submition: dict):
-  submited_by = f"by <@{submition['submition'].get('submitter', user.platform_id)}>"
+  graded_by = submition['submition'].get('submitter', None)
 
   result = submition.get("result", None)
 
@@ -906,7 +906,7 @@ def get_submition_blocks(logic: AppLogic, user: User, submition: dict):
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"<@{user.platform_id}>, {submited_by}{', grade: *{}*'.format(result) if result is not None else ''}{', have files' if submition.get('files', None) is not None else ''}"
+        "text": f"<@{user.platform_id}>{', graded by <@{}>'.format(graded_by) if graded_by is not None else ''}{', grade: *{}*'.format(result) if result is not None else ''}{', have files' if submition.get('files', None) is not None else ''}"
       },
       "accessory": {
           "type": "button",
@@ -1050,4 +1050,9 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
   await client.views_update(
     view_id=body["view"]["previous_view_id"],
     view=get_submitions_per_event_modal(logic, event_id)
+  )
+  
+  await client.views_update(
+    view_id=body["view"]["root_view_id"],
+    view=get_manage_submitions_modal(logic)
   )

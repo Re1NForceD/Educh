@@ -1,5 +1,6 @@
 from course_classes import *
 from app_logic_api import *
+from .home_views import update_home_teachers_user
 from .setup_event_views import update_modal_event_setup_test_config, get_event_in_process
 
 from slack_bolt import Ack
@@ -453,10 +454,16 @@ async def modal_test_setup_callback(context, ack: Ack, body, client, logger):
 
 
 async def handle_take_test(context, body, logger, client: WebClient, ack: Ack):
-  await ack()
-  
   logic: AppLogic = context["logic"]
 
+  user_id: str = body["user"]["id"]
+  if not logic.course.get_user(user_id).is_learner():
+    await ack(response_action="errors", errors={"event_block": "You are not a learner"})
+    logger.warning(f"{user_id} is not a learner to take test")
+    return
+  
+  await ack()
+  
   logger.info(body)
   event_id = int(body["actions"][0]["value"])
   event: Event = logic.course.get_event(event_id)
@@ -567,9 +574,15 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
   await handle_user_submission(logic, event_id, user_id, answers, client)
 
 async def handle_submit_assignment(context, body, logger, client: WebClient, ack: Ack):
-  await ack()
-  
   logic: AppLogic = context["logic"]
+
+  user_id: str = body["user"]["id"]
+  if not logic.course.get_user(user_id).is_learner():
+    await ack(response_action="errors", errors={"event_block": "You are not a learner"})
+    logger.warning(f"{user_id} is not a learner to submit assignment")
+    return
+  
+  await ack()
 
   logger.info(body)
   event_id = int(body["actions"][0]["value"])
@@ -639,6 +652,7 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
 
 async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
   logic.event_submition(event_id, user_id, submition)
+  await update_home_teachers_user(logic, user_id, client)
   # await notify_teachers(logic, event_id, user_id, submition, client) # TODO
 
 async def notify_teachers(logic: AppLogic, event: AssignmentEvent, user_id: str, files, client: WebClient):

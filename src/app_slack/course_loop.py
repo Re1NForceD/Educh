@@ -116,6 +116,7 @@ def get_blocks_event_assignment(event: AssignmentEvent):
   return [
     {
       "type": "actions",
+      "block_id": "event_block",
       "elements": [
         {
           "type": "button",

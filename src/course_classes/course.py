@@ -141,6 +141,9 @@ class Course:
         event_submition[user_id] = submition
         self.submitions_by_id[submition["id"]] = [event_id, user_id, submition]
 
+        if submition.get("date", None) is None:
+          submition["date"] = datetime_to_str(datetime.datetime.now())
+
   def update_submition(self, submition_id, submitter_id, result):
     submition = self.submitions_by_id[submition_id][2]
     submition["submitter"] = submitter_id
