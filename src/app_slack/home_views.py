@@ -956,7 +956,7 @@ async def handle_see_submition(client: WebClient, ack: Ack, body, context, logge
   if user is None:
     return
   
-  if body["view"] is not None:
+  if body.get("view", None) is not None:
     await client.views_push(
         trigger_id=body["trigger_id"],
         view=get_see_submition_modal(logic, user, submition[2])
@@ -1074,6 +1074,9 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
   logic.grade_event_submition(submitter_id, submition_id, result)
+
+  user_id = logic.course.submitions_by_id[submition_id][1]
+  await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
   
   if body["view"]["previous_view_id"] is not None:
     await client.views_update(
@@ -1085,3 +1088,63 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
       view_id=body["view"]["root_view_id"],
       view=get_manage_submitions_modal(logic)
     )
+
+def get_submition_message_blocks(logic: AppLogic, submition_id: int):
+  submition = logic.course.submitions_by_id.get(submition_id, None)
+  if submition is None:
+    return []
+  
+  event: Event = logic.course.get_event(submition[0])
+  if event is None:
+    return []
+  
+  user: User = logic.course.get_user(submition[1])
+  if user is None:
+    return []
+  
+  submition = submition[2]
+  
+  result = submition.get("result", None)
+  result_str = ""
+  if result is not None:
+    result_str = f"Grade: {result}"
+
+  message_texts = []
+  submition_data = submition["submition"]
+  if submition_data.get("info", None) is not None:
+    message_texts.append(f"info - {submition_data.get('info', None)}")
+  if submition_data.get("files", None) is not None:
+    message = ["files:"]
+    for file in submition_data.get("files", None):
+      message.append(f"<{file['permalink']}|file>")
+    message_texts.append(" ".join(message))
+  
+  blocks = [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"<@{user.platform_id}> has submitted for event *{event.name}* - {event_types_str[event.type]}: \
+        {', '.join(message_texts)}\n{result_str}",
+      },
+    },
+  ]
+
+  if result is None:
+    blocks.append({
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "See submition",
+          },
+          "value": f"{submition_id}",
+          "action_id": "click_see_submition"
+        }
+      ]
+    })
+
+  return blocks

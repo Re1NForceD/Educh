@@ -1,6 +1,6 @@
 from course_classes import *
 from app_logic_api import *
-from .home_views import update_home_teachers_user
+from .home_views import update_home_teachers_user, get_submition_message_blocks
 from .setup_event_views import update_modal_event_setup_test_config, get_event_in_process
 
 from slack_bolt import Ack
@@ -653,71 +653,12 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
 async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
   submition_id = logic.event_submition(event_id, user_id, submition)
   await update_home_teachers_user(logic, user_id, client)
-  await notify_teachers(logic, event_id, user_id, submition_id, client)
+  await notify_teachers(logic, submition_id, client)
 
-async def notify_teachers(logic: AppLogic, event_id: int, user_id: str, submition_id: int, client: WebClient):
+async def notify_teachers(logic: AppLogic, submition_id: int, client: WebClient):
   for user in logic.course.users.values():
     if user.is_teacher():
-      await client.chat_postMessage(channel=user.platform_id, blocks=get_submition_message_blocks(logic, event_id, user_id, submition_id)) # TODO: set grade
-
-def get_submition_message_blocks(logic: AppLogic, event_id: int, user_id: str, submition_id: int):
-  event: Event = logic.course.get_event(event_id)
-  if event is None:
-    return []
-  
-  user: User = logic.course.get_user(user_id)
-  if user is None:
-    return []
-  
-  submition = logic.course.submitions_by_id.get(submition_id, None)
-  if submition is None:
-    return []
-  submition = submition[2]
-  
-  result = submition.get("result", None)
-  result_str = ""
-  if result is not None:
-    result_str = f"Grade: {result}"
-
-  message_texts = []
-  submition_data = submition["submition"]
-  if submition_data.get("info", None) is not None:
-    message_texts.append(f"info - {submition_data.get('info', None)}")
-  if submition_data.get("files", None) is not None:
-    message = ["files:"]
-    for file in submition_data.get("files", None):
-      message.append(f"<{file['permalink']}|file>")
-    message_texts.append(" ".join(message))
-  
-  blocks = [
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": f"<@{user_id}> has submitted for event *{event.name}* - {event_types_str[event.type]}: \
-        {', '.join(message_texts)}\n{result_str}",
-      },
-    },
-  ]
-
-  if result is None:
-    blocks.append({
-      "type": "actions",
-      "elements": [
-        {
-          "type": "button",
-          "style": "primary",
-          "text": {
-            "type": "plain_text",
-            "text": "See submition",
-          },
-          "value": f"{submition_id}",
-          "action_id": "click_see_submition"
-        }
-      ]
-    })
-
-  return blocks
+      await client.chat_postMessage(channel=user.platform_id, blocks=get_submition_message_blocks(logic, submition_id))
 
 async def handle_enter_class(context, body, logger, client: WebClient, ack: Ack):
   await ack()
