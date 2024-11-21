@@ -17,6 +17,9 @@ async def update_home_teachers_user(logic: AppLogic, user_id: str, client: WebCl
 
 async def update_home_views(logic: AppLogic, client):
   for user in logic.course.users.values():
+    await update_home_view(user, logic, client)
+
+async def update_home_view(user: User, logic: AppLogic, client):
     await client.views_publish(
         user_id=user.platform_id,
         view=get_home_view(user, logic)
@@ -27,7 +30,7 @@ def get_home_view(user: User, logic: AppLogic):
   if user.is_teacher(): # TODO: more home views & rewrite to modals
     blocks = get_teacher_blocks(user, logic)
   elif user.is_learner():
-    blocks = get_default_blocks(user, logic)
+    blocks = get_learner_blocks(user, logic)
   else:
     blocks = get_default_blocks(user, logic)
   
@@ -42,8 +45,8 @@ def get_default_blocks(user: User, logic: AppLogic):
       {
           "type": "section",
           "text": {
-              "type": "plain_text",
-              "text": f"*Welcome to your _App's Home tab_* :tada: {user.platform_id}!"
+              "type": "mrkdwn",
+              "text": f"*Welcome to your _Educh Home tab_* <@{user.platform_id}>!"
           }
       },
       {
@@ -53,10 +56,23 @@ def get_default_blocks(user: User, logic: AppLogic):
           "type": "section",
           "text": {
               "type": "plain_text",
-              "text": "This button won't do much for now but you can set up a listener for it using the `actions()` method and passing its unique `action_id`. See an example in the `examples` folder within your Bolt app."
+              "text": "You are not a teacher, nor a learner."
           }
       }
   ]
+
+def get_learner_blocks(user: User, logic: AppLogic):
+  blocks = [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": f"{logic.course.name} :books:"
+      }
+    },
+  ]
+
+  return blocks
 
 def get_teacher_blocks(user: User, logic: AppLogic):
   blocks = [
@@ -497,6 +513,12 @@ async def modal_add_users_callback(ack: Ack, context, body, client: WebClient):
   
   logic.update_users_role(role, users)
   logic.update_users()
+
+  for user_id in users:
+    user: User = logic.course.get_user(user_id)
+    if user is not None:
+      await update_home_view(user, logic, client)
+
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
       view=get_manage_users_modal(logic)
@@ -511,6 +533,7 @@ async def handle_remove_user(client: WebClient, ack: Ack, body, logger, context)
   if user is not None and user.role != U_MASTER:
     logic.update_users_role(U_GUEST, [user_id])
     logic.update_users()
+    await update_home_view(user, logic, client)
     resp = await client.views_update(
         view_id=body["view"]["id"],
         view=get_manage_users_modal(logic)
@@ -799,13 +822,13 @@ async def modal_add_submition_callback(ack: Ack, context, body, client: WebClien
   logic: AppLogic = context["logic"]
   modal_values = body["view"]["state"]["values"]
 
-  submitter: str = body["user"]["id"]
+  submitter_id: str = body["user"]["id"]
   event_id: int = int(modal_values["event_select"]["event"]["selected_option"]["value"])
   user_id: str = modal_values["user_select"]["learners"]["selected_option"]["value"]
   submition_info: str = modal_values["submition_info_input"]["submition_info"]["value"]
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
-  logic.event_submition(event_id, user_id, {"info": submition_info, "submitter": submitter}, result)
+  logic.event_submition(event_id, user_id, {"info": submition_info}, submitter_id, result)
   
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
@@ -897,9 +920,10 @@ def get_users_submitions_block(logic: AppLogic, submitions: dict[str, dict]):
   return blocks
 
 def get_submition_blocks(logic: AppLogic, user: User, submition: dict):
-  graded_by = submition['submition'].get('submitter', None)
+  graded_by = submition.get('submitter_id', None)
 
   result = submition.get("result", None)
+  id = submition.get("id", None)
 
   return [
     {
@@ -915,7 +939,7 @@ def get_submition_blocks(logic: AppLogic, user: User, submition: dict):
             "type": "plain_text",
             "text": "See submition",
           },
-          "value": user.platform_id,
+          "value": f"{id}",
           "action_id": "click_see_submition"
       }
     },
@@ -924,26 +948,32 @@ def get_submition_blocks(logic: AppLogic, user: User, submition: dict):
 async def handle_see_submition(client: WebClient, ack: Ack, body, context, logger):
   await ack()
   logic: AppLogic = context["logic"]
-  event_id: int = int(body["view"]["private_metadata"])
+  # event_id: int = int(body["view"]["private_metadata"])
 
-  user_id: str = body["actions"][0]["value"]
-  user: User = logic.course.get_user(user_id)
+  submition_id: str = int(body["actions"][0]["value"])
+  submition = logic.course.submitions_by_id.get(submition_id, None)
+  user: User = logic.course.get_user(submition[1])
   if user is None:
     return
   
-  resp = await client.views_push(
-      trigger_id=body["trigger_id"],
-      view=get_see_submition_modal(logic, event_id, user)
-  )
+  if body["view"] is not None:
+    await client.views_push(
+        trigger_id=body["trigger_id"],
+        view=get_see_submition_modal(logic, user, submition[2])
+    )
+  else:
+    await client.views_open(
+        trigger_id=body["trigger_id"],
+        view=get_see_submition_modal(logic, user, submition[2])
+    )
 
-def get_see_submition_modal(logic: AppLogic, event_id: int, user: User):
-  submition_data: dict = logic.course.submitions[event_id][user.platform_id]
+def get_see_submition_modal(logic: AppLogic, user: User, submition_data):
   submition_id = submition_data["id"]
   result = submition_data["result"]
   modal = {
     "type": "modal",
     "callback_id": "view_see_submition",
-    "private_metadata": f"{event_id}-{submition_id}",
+    "private_metadata": f"{submition_id}",
     "title": {
       "type": "plain_text",
       "text": f"User's submition"
@@ -985,22 +1015,22 @@ def get_see_submition_modal(logic: AppLogic, event_id: int, user: User):
 
   return modal
 
-def get_user_submition_blocks(user: User, submition_data: dict):
-  submition = submition_data["submition"]
-  result = submition_data["result"]
-  date = submition_data.get("date", "*no date*")
-  submitter = submition.get("submitter", user.platform_id)
+def get_user_submition_blocks(user: User, submition: dict):
+  submition_data = submition["submition"]
+  result = submition["result"]
+  date = submition.get("date", "*no date*")
+  submitter_id = submition.get("submitter_id", None)
   blocks = [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"It is <@{user.platform_id}>'s submition from {date}, submited by <@{submitter}>"
+        "text": f"It is <@{user.platform_id}>'s submition from {date}{', grated by <@{}>'.format(submitter_id) if submitter_id is not None else ''}"
       },
     }
   ]
 
-  info = submition.get("info", None)
+  info = submition_data.get("info", None)
   if info is not None:
     blocks += [
       {
@@ -1012,7 +1042,7 @@ def get_user_submition_blocks(user: User, submition_data: dict):
       }
     ]
 
-  files = submition.get("files", [])
+  files = submition_data.get("files", [])
   if len(files) != 0:
     for file in files:
       blocks.append({
@@ -1040,19 +1070,18 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
   modal_values = body["view"]["state"]["values"]
 
   submitter_id: str = body["user"]["id"]
-  metadata = body["view"]["private_metadata"].split("-")
-  event_id: int = int(metadata[0])
-  submition_id: int = int(metadata[1])
+  submition_id: int = int(body["view"]["private_metadata"])
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
   logic.grade_event_submition(submitter_id, submition_id, result)
   
-  await client.views_update(
-    view_id=body["view"]["previous_view_id"],
-    view=get_submitions_per_event_modal(logic, event_id)
-  )
+  if body["view"]["previous_view_id"] is not None:
+    await client.views_update(
+      view_id=body["view"]["previous_view_id"],
+      view=get_submitions_per_event_modal(logic, logic.course.submitions_by_id[submition_id][0])
+    )
   
-  await client.views_update(
-    view_id=body["view"]["root_view_id"],
-    view=get_manage_submitions_modal(logic)
-  )
+    await client.views_update(
+      view_id=body["view"]["root_view_id"],
+      view=get_manage_submitions_modal(logic)
+    )

@@ -124,20 +124,21 @@ class AppLogic:
     self.update_essensials(started_at=start_time)
     return True
   
-  def event_submition(self, event_id: int, user_id: str, submition: dict[str, list[str]], result: int = None):
-    logger.debug(f"event_submition {user_id} - {event_id} - {submition}")
+  def event_submition(self, event_id: int, user_id: str, submition: dict[str, list[str]], submitter_id: str = None, result: int = None):
     event: Event = self.course.get_event(event_id)
     
     if event is None:
       logger.error(f"cant find event: {event_id}")
       return
     
-    r = self.send_req(func=requests.post, path=ep_event_submitions, json={"event_id": event_id, "user_id": user_id, "submition": submition, "result": result})
+    r = self.send_req(func=requests.post, path=ep_event_submitions, json={"event_id": event_id, "user_id": user_id, "submition": submition, "submitter_id": submitter_id, "result": result})
     if not r.ok:
       raise RuntimeError("can't post event_submitions")
     
     r_data=r.json()
-    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"], "id": r_data["id"]}}})
+    submition_id = r_data["id"]
+    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"], "id": submition_id}}})
+    return submition_id
 
   def request_submitions(self):
     r = self.send_req(func=requests.get, path=ep_event_submitions)
@@ -152,4 +153,4 @@ class AppLogic:
     if not r.ok:
       raise RuntimeError("can't put event_submitions")
     
-    self.course.update_submition(submition_id, submitter_id, result)
+    self.course.update_submition(submitter_id, submition_id, result)

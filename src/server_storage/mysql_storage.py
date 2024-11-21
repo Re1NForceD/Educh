@@ -231,7 +231,7 @@ class MySQLStorage(DataStorage):
   def get_event_submitions(self, course_id: int):
     cnx = self.get_cnx()
     submitions: dict[int, dict] = {}
-    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.result, ces.created_at from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
+    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.submitter_id, ces.result, ces.created_at from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
       submition_id = submition[0]
       if submition_id is None:
         logger.warning(f"got invalid submition row: {submition}")
@@ -239,21 +239,28 @@ class MySQLStorage(DataStorage):
       
       event_id = submition[1]
       user_id = submition[2]
-      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "result": submition[4], "date": datetime_to_str(submition[5])}
+      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "submitter_id": submition[4], "result": submition[5], "date": datetime_to_str(submition[6])}
       if submitions.get(event_id, None) is None:
         submitions[event_id] = {}
       submitions[event_id][user_id] = submition_d
     return submitions
   
-  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, result):
+  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, submitter_id: str, result: int):
     cnx = self.get_cnx()
-    id = self.exec_insert(cnx, f"insert into course_event_submition (event_id, user_id, submition {',result' if result is not None else ''}) values({event_id}, '{user_id}', '{json.dumps(submition)}'{',{}'.format(result) if result is not None else ''})")
+    columns = ["event_id","user_id","submition"]
+    values = [f"{event_id}", f"'{user_id}'", f"'{json.dumps(submition)}'"]
+    if submitter_id is not None:
+      columns.append("submitter_id")
+      values.append(f"'{submitter_id}'")
+    if result is not None:
+      columns.append("result")
+      values.append(f"{result}")
+
+    id = self.exec_insert(cnx, f"insert into course_event_submition ({','.join(columns)}) values({','.join(values)})")
     cnx.commit()
     return id
   
   def grade_event_submition(self, submition_id, submitter_id, result):
     cnx = self.get_cnx()
-    submition = json.loads(self.exec_select(cnx, f"select submition from course_event_submition where id = {submition_id}")[0][0])
-    submition["submitter"] = submitter_id
-    self.exec_update(cnx, f"update course_event_submition set submition='{json.dumps(submition)}', result={result} where id={submition_id}")
+    self.exec_update(cnx, f"update course_event_submition set submitter_id='{submitter_id}', result={result} where id={submition_id}")
     cnx.commit()

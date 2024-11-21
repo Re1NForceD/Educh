@@ -651,25 +651,73 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
   await handle_user_submission(logic, event_id, user_id, {"files": modal_values["file_submission"]["submitted_assignment"]["files"]}, client)
 
 async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
-  logic.event_submition(event_id, user_id, submition)
+  submition_id = logic.event_submition(event_id, user_id, submition)
   await update_home_teachers_user(logic, user_id, client)
-  # await notify_teachers(logic, event_id, user_id, submition, client) # TODO
+  await notify_teachers(logic, event_id, user_id, submition_id, client)
 
-async def notify_teachers(logic: AppLogic, event: AssignmentEvent, user_id: str, files, client: WebClient):
-  users_to_notify: list[str] = []
+async def notify_teachers(logic: AppLogic, event_id: int, user_id: str, submition_id: int, client: WebClient):
   for user in logic.course.users.values():
     if user.is_teacher():
-      users_to_notify.append(user.platform_id)
-      await client.chat_postMessage(channel=user.platform_id, blocks=[
-          {
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": f"<@{user_id}> has submitted for event *{event.name}* following: <{files[0]['permalink']}|file>",
-            },
+      await client.chat_postMessage(channel=user.platform_id, blocks=get_submition_message_blocks(logic, event_id, user_id, submition_id)) # TODO: set grade
+
+def get_submition_message_blocks(logic: AppLogic, event_id: int, user_id: str, submition_id: int):
+  event: Event = logic.course.get_event(event_id)
+  if event is None:
+    return []
+  
+  user: User = logic.course.get_user(user_id)
+  if user is None:
+    return []
+  
+  submition = logic.course.submitions_by_id.get(submition_id, None)
+  if submition is None:
+    return []
+  submition = submition[2]
+  
+  result = submition.get("result", None)
+  result_str = ""
+  if result is not None:
+    result_str = f"Grade: {result}"
+
+  message_texts = []
+  submition_data = submition["submition"]
+  if submition_data.get("info", None) is not None:
+    message_texts.append(f"info - {submition_data.get('info', None)}")
+  if submition_data.get("files", None) is not None:
+    message = ["files:"]
+    for file in submition_data.get("files", None):
+      message.append(f"<{file['permalink']}|file>")
+    message_texts.append(" ".join(message))
+  
+  blocks = [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"<@{user_id}> has submitted for event *{event.name}* - {event_types_str[event.type]}: \
+        {', '.join(message_texts)}\n{result_str}",
+      },
+    },
+  ]
+
+  if result is None:
+    blocks.append({
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "See submition",
           },
-        ]
-      ) # TODO: set grade
+          "value": f"{submition_id}",
+          "action_id": "click_see_submition"
+        }
+      ]
+    })
+
+  return blocks
 
 async def handle_enter_class(context, body, logger, client: WebClient, ack: Ack):
   await ack()

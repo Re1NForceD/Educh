@@ -179,7 +179,7 @@ def app_post_event_submition():
   if "submition" not in request.json:
     raise BadRequest("not found field: submition")
   
-  id, result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("result", None))
+  id, result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("submitter_id", None), request.json.get("result", None))
   return {"id": id, "result": result}, 200
 
 
