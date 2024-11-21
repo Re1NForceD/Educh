@@ -828,12 +828,15 @@ async def modal_add_submition_callback(ack: Ack, context, body, client: WebClien
   submition_info: str = modal_values["submition_info_input"]["submition_info"]["value"]
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
-  logic.event_submition(event_id, user_id, {"info": submition_info}, submitter_id, result)
+  submition_id = logic.event_submition(event_id, user_id, {"info": submition_info}, submitter_id, result)
   
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
       view=get_manage_submitions_modal(logic)
   )
+
+  if logic.course.submitions_by_id[submition_id][2].get("result", None) is not None:
+    await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
 
 async def handle_show_submitions_per_event(client: WebClient, ack: Ack, body, logger, context):
   await ack()
@@ -1105,9 +1108,10 @@ def get_submition_message_blocks(logic: AppLogic, submition_id: int):
   submition = submition[2]
   
   result = submition.get("result", None)
+  submitter_id = submition.get("submitter_id", None)
   result_str = ""
   if result is not None:
-    result_str = f"Grade: {result}"
+    result_str = f"Grade: {result}, by <@{submitter_id}>"
 
   message_texts = []
   submition_data = submition["submition"]
@@ -1124,8 +1128,7 @@ def get_submition_message_blocks(logic: AppLogic, submition_id: int):
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"<@{user.platform_id}> has submitted for event *{event.name}* - {event_types_str[event.type]}: \
-        {', '.join(message_texts)}\n{result_str}",
+        "text": f"<@{user.platform_id}> has submitted for event *{event.name}* - {event_types_str[event.type]}: {', '.join(message_texts)}\n{result_str}",
       },
     },
   ]

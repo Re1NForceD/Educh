@@ -480,7 +480,6 @@ def get_test_modal(event: TestEvent):
   modal = {
     "type": "modal",
     "callback_id": "view_take_test",
-    "notify_on_close": True,
     "title": {
       "type": "plain_text",
       "text": event.name
@@ -571,7 +570,7 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
     elif "multi_test_ans" in value:
       answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
 
-  await handle_user_submission(logic, event_id, user_id, answers, client)
+  submition_id = await handle_user_submission(logic, event_id, user_id, answers, client)
 
 async def handle_submit_assignment(context, body, logger, client: WebClient, ack: Ack):
   logic: AppLogic = context["logic"]
@@ -654,6 +653,11 @@ async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, s
   submition_id = logic.event_submition(event_id, user_id, submition)
   await update_home_teachers_user(logic, user_id, client)
   await notify_teachers(logic, submition_id, client)
+  
+  if logic.course.submitions_by_id[submition_id][2].get("result", None) is not None:
+    await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
+  
+  return submition_id
 
 async def notify_teachers(logic: AppLogic, submition_id: int, client: WebClient):
   for user in logic.course.users.values():

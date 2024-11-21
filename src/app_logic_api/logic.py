@@ -137,7 +137,7 @@ class AppLogic:
     
     r_data=r.json()
     submition_id = r_data["id"]
-    self.course.colect_submition({event_id: {user_id: {"submition": submition, "result": r_data["result"], "id": submition_id}}})
+    self.course.colect_submition({event_id: {user_id: {"id": submition_id, "submition": submition, "submitter_id": submitter_id, "result": r_data["result"]}}})
     return submition_id
 
   def request_submitions(self):
