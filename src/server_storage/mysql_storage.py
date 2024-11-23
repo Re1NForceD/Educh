@@ -247,6 +247,11 @@ class MySQLStorage(DataStorage):
   
   def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, submitter_id: str, result: int):
     cnx = self.get_cnx()
+    
+    row = self.exec_select(cnx, f"select result from course_event_submition where user_id='{user_id}' and event_id={event_id}")
+    if len(row) > 0:
+      return None
+    
     columns = ["event_id","user_id","submition"]
     values = [f"{event_id}", f"'{user_id}'", f"'{json.dumps(submition)}'"]
     if submitter_id is not None:
@@ -262,5 +267,10 @@ class MySQLStorage(DataStorage):
   
   def grade_event_submition(self, submition_id, submitter_id, result):
     cnx = self.get_cnx()
-    self.exec_update(cnx, f"update course_event_submition set submitter_id='{submitter_id}', result={result} where id={submition_id}")
-    cnx.commit()
+    row = self.exec_select(cnx, f"select result from course_event_submition where id = {submition_id}")[0]
+    if row[0] is None:
+      self.exec_update(cnx, f"update course_event_submition set submitter_id='{submitter_id}', result={result} where id={submition_id}")
+      cnx.commit()
+      return False
+    else:
+      return True

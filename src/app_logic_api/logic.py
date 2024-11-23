@@ -137,7 +137,8 @@ class AppLogic:
     
     r_data=r.json()
     submition_id = r_data["id"]
-    self.course.colect_submition({event_id: {user_id: {"id": submition_id, "submition": submition, "submitter_id": submitter_id, "result": r_data["result"]}}})
+    if submition_id is not None:
+      self.course.colect_submition({event_id: {user_id: {"id": submition_id, "submition": submition, "submitter_id": submitter_id, "result": r_data["result"]}}})
     return submition_id
 
   def request_submitions(self):
@@ -153,4 +154,7 @@ class AppLogic:
     if not r.ok:
       raise RuntimeError("can't put event_submitions")
     
-    self.course.update_submition(submitter_id, submition_id, result)
+    code = r.json().get("code", 0)
+    if code == 0:
+      self.course.update_submition(submitter_id, submition_id, result)
+    return code == 0 

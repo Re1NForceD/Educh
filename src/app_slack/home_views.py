@@ -816,7 +816,11 @@ async def modal_add_submition_callback(ack: Ack, context, body, client: WebClien
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
   submition_id = logic.event_submition(event_id, user_id, {"info": submition_info}, submitter_id, result)
+  if submition_id is None:
+    await ack(response_action="errors", errors={"user_select": "Can't make submition for this user"})
+    return
   
+  await ack()
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
       view=get_manage_submitions_modal(logic)
@@ -1057,7 +1061,6 @@ def get_user_submition_blocks(user: User, submition: dict):
   return blocks
 
 async def modal_see_submition_callback(ack: Ack, context, body, client: WebClient): # TODO: it can write existed submitions, rewrite to arrays
-  await ack()
   logic: AppLogic = context["logic"]
   modal_values = body["view"]["state"]["values"]
 
@@ -1065,8 +1068,12 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
   submition_id: int = int(body["view"]["private_metadata"])
   result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
 
-  logic.grade_event_submition(submitter_id, submition_id, result)
+  updated = logic.grade_event_submition(submitter_id, submition_id, result)
+  if not updated:
+    await ack(response_action="errors", errors={"submition_result_input": "Can't grade this submition"})
+    return
 
+  await ack()
   user_id = logic.course.submitions_by_id[submition_id][1]
   await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
   

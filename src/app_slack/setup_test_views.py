@@ -555,9 +555,7 @@ def get_test_config_blocks_multi(hash: str, test: TestConfigMulti):
     },
   ]
 
-async def modal_take_test_callback(context, body, logger, client: WebClient, ack: Ack):
-  await ack()
-  
+async def modal_take_test_callback(context, body, logger, client: WebClient, ack: Ack):  
   logic: AppLogic = context["logic"]
   user_id = body["user"]["id"]
   event_id = int(body["view"]["private_metadata"])
@@ -571,6 +569,11 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
       answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
 
   submition_id = await handle_user_submission(logic, event_id, user_id, answers, client)
+  if submition_id is None:
+    await ack(response_action="errors", errors={"signle_test_ans": "You can not submit test", "multi_test_ans": "You can not submit test"})
+    return
+
+  await ack()
 
 async def handle_submit_assignment(context, body, logger, client: WebClient, ack: Ack):
   logic: AppLogic = context["logic"]
@@ -647,10 +650,17 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
   event_id = int(body["view"]["private_metadata"])
   modal_values = body["view"]["state"]["values"]
 
-  await handle_user_submission(logic, event_id, user_id, {"files": modal_values["file_submission"]["submitted_assignment"]["files"]}, client)
+  if await handle_user_submission(logic, event_id, user_id, {"files": modal_values["file_submission"]["submitted_assignment"]["files"]}, client) is None:
+    await ack(response_action="errors", errors={"file_submission": "Can't make submition"})
+    return
+
+  await ack()
 
 async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
   submition_id = logic.event_submition(event_id, user_id, submition)
+  if submition_id is None:
+    return None
+  
   await update_home_teachers_user(logic, user_id, client)
   await notify_teachers(logic, submition_id, client)
   

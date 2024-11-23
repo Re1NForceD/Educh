@@ -51,5 +51,5 @@ class Logic:
     id = self._storage.save_event_submition(course.id, event_id, user_id, submition, submitter_id, result)
     return [id, result]
   
-  def grade_event_submition(self, submition_id, submitter_id, result):
-    self._storage.grade_event_submition(submition_id, submitter_id, result)
+  def grade_event_submition(self, submition_id, submitter_id, result) -> bool:
+    return self._storage.grade_event_submition(submition_id, submitter_id, result)

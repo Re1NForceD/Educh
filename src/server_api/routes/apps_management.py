@@ -194,6 +194,6 @@ def app_grade_event_submition():
   if "result" not in request.json:
     raise BadRequest("not found field: result")
   
-  logic.grade_event_submition(request.json["submition_id"], request.json["submitter_id"], request.json["result"])
-  return {}, 200
+  updated = logic.grade_event_submition(request.json["submition_id"], request.json["submitter_id"], request.json["result"])
+  return {"code": 0 if updated else 1}, 200
 

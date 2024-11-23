@@ -46,5 +46,5 @@ class DataStorage():
   def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, submitter_id, result):
     pass
   
-  def grade_event_submition(self, submition_id, submitter_id, result):
+  def grade_event_submition(self, submition_id, submitter_id, result) -> bool:
     pass
