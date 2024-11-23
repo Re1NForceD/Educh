@@ -909,17 +909,18 @@ def get_users_submitions_block(logic: AppLogic, event: Event, submitions: dict[s
     
   return blocks
 
-def get_submition_blocks(logic: AppLogic, event: Event, user: User, submition: dict):
-  graded_by = submition.get('submitter_id', None)
-  result = submition.get("result", None)
-  id = submition.get("id", None)
+def get_submition_blocks(logic: AppLogic, event: Event, user: User, submition_data: dict):
+  submition = submition_data["submition"]
+  graded_by = submition_data.get('submitter_id', None)
+  result = submition_data.get("result", None)
+  id = submition_data.get("id", None)
 
   return [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"{'Event: *{}*, '.format(event.name) if event is not None else ''}<@{user.platform_id}>{', graded by <@{}>'.format(graded_by) if graded_by is not None else ''}{', grade: *{}*'.format(result) if result is not None else ''}{', have files' if submition.get('files', None) is not None else ''}"
+        "text": f"{'Event: *{}*, '.format(event.name) if event is not None else ''}<@{user.platform_id}>{', has files' if submition.get('files', None) is not None else ''}{', grade: *{}*'.format(result) if result is not None else ''}{' by <@{}>'.format(graded_by) if graded_by is not None and result is not None else ''}"
       },
       "accessory": {
           "type": "button",
@@ -937,6 +938,8 @@ def get_submition_blocks(logic: AppLogic, event: Event, user: User, submition: d
 async def handle_see_submition(client: WebClient, ack: Ack, body, context, logger):
   await ack()
   logic: AppLogic = context["logic"]
+  viewer_id = body["user"]["id"]
+  viewer: User = logic.course.get_user(viewer_id)
   # event_id: int = int(body["view"]["private_metadata"])
 
   submition_id: str = int(body["actions"][0]["value"])
@@ -948,15 +951,15 @@ async def handle_see_submition(client: WebClient, ack: Ack, body, context, logge
   if body.get("view", None) is not None and body["view"]["type"] == "modal":
     await client.views_push(
         trigger_id=body["trigger_id"],
-        view=get_see_submition_modal(logic, user, submition[2])
+        view=get_see_submition_modal(logic, viewer, user, submition[2])
     )
   else:
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view=get_see_submition_modal(logic, user, submition[2])
+        view=get_see_submition_modal(logic, viewer, user, submition[2])
     )
 
-def get_see_submition_modal(logic: AppLogic, user: User, submition_data):
+def get_see_submition_modal(logic: AppLogic, viewer: User, user: User, submition_data):
   submition_id = submition_data["id"]
   result = submition_data["result"]
   modal = {
@@ -974,7 +977,7 @@ def get_see_submition_modal(logic: AppLogic, user: User, submition_data):
     "blocks": get_user_submition_blocks(user, submition_data)
   }
 
-  if result is None:
+  if result is None and viewer.is_teacher() and viewer != user:
     modal["submit"] = {
       "type": "plain_text",
       "text": "Submit"
@@ -1014,7 +1017,7 @@ def get_user_submition_blocks(user: User, submition: dict):
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"It is <@{user.platform_id}>'s submition from {date}{', grated by <@{}>'.format(submitter_id) if submitter_id is not None else ''}"
+        "text": f"It is <@{user.platform_id}>'s submition from {date}"
       },
     }
   ]
@@ -1047,7 +1050,7 @@ def get_user_submition_blocks(user: User, submition: dict):
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"Grade: *{result}*",
+        "text": f"Grade: *{result}*{' by <@{}>'.format(submitter_id) if submitter_id is not None else ''}",
       }
     })
 
@@ -1077,6 +1080,8 @@ async def modal_see_submition_callback(ack: Ack, context, body, client: WebClien
       view_id=body["view"]["root_view_id"],
       view=get_manage_submitions_modal(logic)
     )
+
+  await update_home_teachers_user(logic, user_id, client)
 
 def get_submition_message_blocks(logic: AppLogic, submition_id: int):
   submition = logic.course.submitions_by_id.get(submition_id, None)
