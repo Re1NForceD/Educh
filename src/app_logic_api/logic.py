@@ -126,10 +126,14 @@ class AppLogic:
   
   def event_submition(self, event_id: int, user_id: str, submition: dict[str, list[str]], submitter_id: str = None, result: int = None):
     event: Event = self.course.get_event(event_id)
-    
     if event is None:
       logger.error(f"cant find event: {event_id}")
-      return
+      return None
+    
+    user: User = self.course.get_user(user_id)
+    if user is None or not user.is_learner():
+      logger.error(f"user is not a learner: {user_id}")
+      return None
     
     r = self.send_req(func=requests.post, path=ep_event_submitions, json={"event_id": event_id, "user_id": user_id, "submition": submition, "submitter_id": submitter_id, "result": result})
     if not r.ok:
@@ -150,6 +154,11 @@ class AppLogic:
     self.course.colect_submition(r_data["submitions"])
 
   def grade_event_submition(self, submitter_id: str, submition_id: int, result: int):
+    user: User = self.course.get_user(submitter_id)
+    if user is None or not user.is_teacher():
+      logger.error(f"user is not a teacher: {submitter_id}")
+      return False
+    
     r = self.send_req(func=requests.put, path=ep_event_submitions, json={"submition_id": submition_id, "submitter_id": submitter_id, "result": result})
     if not r.ok:
       raise RuntimeError("can't put event_submitions")
