@@ -1,6 +1,6 @@
 from course_classes import *
 from app_logic_api import *
-from .home_views import update_home_teachers_user, get_submition_message_blocks
+from .home_views import update_home_teachers_user, get_submission_message_blocks
 from .setup_event_views import update_modal_event_setup_test_config, get_event_in_process
 
 from slack_bolt import Ack
@@ -568,8 +568,8 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
     elif "multi_test_ans" in value:
       answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
 
-  submition_id = await handle_user_submission(logic, event_id, user_id, answers, client)
-  if submition_id is None:
+  submission_id = await handle_user_submission(logic, event_id, user_id, answers, client)
+  if submission_id is None:
     await ack(response_action="errors", errors={"signle_test_ans": "You can not submit test", "multi_test_ans": "You can not submit test"})
     return
 
@@ -591,7 +591,7 @@ async def handle_submit_assignment(context, body, logger, client: WebClient, ack
   event: Event = logic.course.get_event(event_id)
 
   if event.type != E_ASSIGNMENT:
-    logger.error(f"try to start submition from event {event_id} but it is not an assignment event")
+    logger.error(f"try to start submission from event {event_id} but it is not an assignment event")
 
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
@@ -651,28 +651,28 @@ async def modal_submit_assignment_callback(context, body, logger, client: WebCli
   modal_values = body["view"]["state"]["values"]
 
   if await handle_user_submission(logic, event_id, user_id, {"files": modal_values["file_submission"]["submitted_assignment"]["files"]}, client) is None:
-    await ack(response_action="errors", errors={"file_submission": "Can't make submition"})
+    await ack(response_action="errors", errors={"file_submission": "Can't make submission"})
     return
 
   await ack()
 
-async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submition, client: WebClient):
-  submition_id = logic.event_submition(event_id, user_id, submition)
-  if submition_id is None:
+async def handle_user_submission(logic: AppLogic, event_id: int, user_id: str, submission, client: WebClient):
+  submission_id = logic.event_submission(event_id, user_id, submission)
+  if submission_id is None:
     return None
   
   await update_home_teachers_user(logic, user_id, client)
-  await notify_teachers(logic, submition_id, client)
+  await notify_teachers(logic, submission_id, client)
   
-  if logic.course.submitions_by_id[submition_id][2].get("result", None) is not None:
-    await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
+  if logic.course.submissions_by_id[submission_id][2].get("result", None) is not None:
+    await client.chat_postMessage(channel=user_id, blocks=get_submission_message_blocks(logic, submission_id))
   
-  return submition_id
+  return submission_id
 
-async def notify_teachers(logic: AppLogic, submition_id: int, client: WebClient):
+async def notify_teachers(logic: AppLogic, submission_id: int, client: WebClient):
   for user in logic.course.users.values():
     if user.is_teacher():
-      await client.chat_postMessage(channel=user.platform_id, blocks=get_submition_message_blocks(logic, submition_id))
+      await client.chat_postMessage(channel=user.platform_id, blocks=get_submission_message_blocks(logic, submission_id))
 
 async def handle_enter_class(context, body, logger, client: WebClient, ack: Ack):
   await ack()

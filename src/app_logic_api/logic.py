@@ -11,7 +11,7 @@ ep_update_essensials = "app/update_essensials"
 ep_update_events = "app/update_events"
 ep_remove_events = "app/remove_events"
 ep_set_events_published = "app/set_events_published"
-ep_event_submitions = "app/event_submitions"
+ep_event_submissions = "app/event_submissions"
 
 class AppLogic:
   def __init__(self, config):
@@ -47,7 +47,7 @@ class AppLogic:
       raise RuntimeError("can't connect to server")
     
     self.verify()
-    self.request_submitions() # TODO: put in verify
+    self.request_submissions() # TODO: put in verify
     
     return True
 
@@ -124,7 +124,7 @@ class AppLogic:
     self.update_essensials(started_at=start_time)
     return True
   
-  def event_submition(self, event_id: int, user_id: str, submition: dict[str, list[str]], submitter_id: str = None, result: int = None):
+  def event_submission(self, event_id: int, user_id: str, submission: dict[str, list[str]], submitter_id: str = None, result: int = None):
     event: Event = self.course.get_event(event_id)
     if event is None:
       logger.error(f"cant find event: {event_id}")
@@ -135,35 +135,35 @@ class AppLogic:
       logger.error(f"user is not a learner: {user_id}")
       return None
     
-    r = self.send_req(func=requests.post, path=ep_event_submitions, json={"event_id": event_id, "user_id": user_id, "submition": submition, "submitter_id": submitter_id, "result": result})
+    r = self.send_req(func=requests.post, path=ep_event_submissions, json={"event_id": event_id, "user_id": user_id, "submission": submission, "submitter_id": submitter_id, "result": result})
     if not r.ok:
-      raise RuntimeError("can't post event_submitions")
+      raise RuntimeError("can't post event_submissions")
     
     r_data=r.json()
-    submition_id = r_data["id"]
-    if submition_id is not None:
-      self.course.colect_submition({event_id: {user_id: {"id": submition_id, "submition": submition, "submitter_id": submitter_id, "result": r_data["result"]}}})
-    return submition_id
+    submission_id = r_data["id"]
+    if submission_id is not None:
+      self.course.colect_submission({event_id: {user_id: {"id": submission_id, "submission": submission, "submitter_id": submitter_id, "result": r_data["result"]}}})
+    return submission_id
 
-  def request_submitions(self):
-    r = self.send_req(func=requests.get, path=ep_event_submitions)
+  def request_submissions(self):
+    r = self.send_req(func=requests.get, path=ep_event_submissions)
     if not r.ok:
-      raise RuntimeError("can't get event_submitions")
+      raise RuntimeError("can't get event_submissions")
     
     r_data=r.json()
-    self.course.colect_submition(r_data["submitions"])
+    self.course.colect_submission(r_data["submissions"])
 
-  def grade_event_submition(self, submitter_id: str, submition_id: int, result: int):
+  def grade_event_submission(self, submitter_id: str, submission_id: int, result: int):
     user: User = self.course.get_user(submitter_id)
     if user is None or not user.is_teacher():
       logger.error(f"user is not a teacher: {submitter_id}")
       return False
     
-    r = self.send_req(func=requests.put, path=ep_event_submitions, json={"submition_id": submition_id, "submitter_id": submitter_id, "result": result})
+    r = self.send_req(func=requests.put, path=ep_event_submissions, json={"submission_id": submission_id, "submitter_id": submitter_id, "result": result})
     if not r.ok:
-      raise RuntimeError("can't put event_submitions")
+      raise RuntimeError("can't put event_submissions")
     
     code = r.json().get("code", 0)
     if code == 0:
-      self.course.update_submition(submitter_id, submition_id, result)
+      self.course.update_submission(submitter_id, submission_id, result)
     return code == 0 

@@ -40,11 +40,11 @@ class DataStorage():
   def remove_events(self, course_id: int, events: list[Event]):
     pass
   
-  def get_event_submitions(self, course_id: int):
+  def get_event_submissions(self, course_id: int):
     pass
   
-  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, submitter_id, result):
+  def save_event_submission(self, course_id: int, event_id: int, user_id: str, submission: dict, submitter_id, result):
     pass
   
-  def grade_event_submition(self, submition_id, submitter_id, result) -> bool:
+  def grade_event_submission(self, submission_id, submitter_id, result) -> bool:
     pass

@@ -15,7 +15,7 @@ class Logic:
 
     self._restore()
 
-  def _restore(self):  # TODO
+  def _restore(self): # TODO
     pass
 
   def verify_app(self, course_id: int, hash: str) -> str:
@@ -42,14 +42,14 @@ class Logic:
   def remove_events(self, course_id: int, events: list[Event]):
     self._storage.remove_events(course_id, events)
 
-  def get_event_submitions(self, course_id: int):
-    return self._storage.get_event_submitions(course_id)
+  def get_event_submissions(self, course_id: int):
+    return self._storage.get_event_submissions(course_id)
 
-  def post_event_submition(self, course: Course, event_id: int, user_id: str, submition: dict, submitter_id, result):
+  def post_event_submission(self, course: Course, event_id: int, user_id: str, submission: dict, submitter_id, result):
     if result is None:
-      result = course.grade_submition(event_id, submition)
-    id = self._storage.save_event_submition(course.id, event_id, user_id, submition, submitter_id, result)
+      result = course.grade_submission(event_id, submission)
+    id = self._storage.save_event_submission(course.id, event_id, user_id, submission, submitter_id, result)
     return [id, result]
   
-  def grade_event_submition(self, submition_id, submitter_id, result) -> bool:
-    return self._storage.grade_event_submition(submition_id, submitter_id, result)
+  def grade_event_submission(self, submission_id, submitter_id, result) -> bool:
+    return self._storage.grade_event_submission(submission_id, submitter_id, result)

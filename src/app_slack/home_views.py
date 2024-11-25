@@ -82,7 +82,7 @@ def get_teacher_blocks(user: User, logic: AppLogic):
     {
       "type": "divider"
     },
-    *get_submitions_section_blocks(logic),
+    *get_submissions_section_blocks(logic),
   ]
 
   return blocks
@@ -167,22 +167,22 @@ def get_users_section_blocks(logic: AppLogic):
     },
   ]
 
-def get_submitions_section_blocks(logic: AppLogic):
+def get_submissions_section_blocks(logic: AppLogic):
   return [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"Submitions: not graded - *{logic.course.get_all_ungraded_submitions()}*"
+        "text": f"Submissions: not graded - *{logic.course.get_all_ungraded_submissions()}*"
       },
       "accessory": {
         "type": "button",
         "style": "primary",
         "text": {
           "type": "plain_text",
-          "text": "Manage submitions",
+          "text": "Manage submissions",
         },
-        "action_id": "manage_submitions"
+        "action_id": "manage_submissions"
       }
     },
   ]
@@ -591,22 +591,22 @@ def get_edit_user_modal(user: User):
     ]
   }
 
-async def handle_manage_submitions(context, client: WebClient, ack: Ack, body, logger):
+async def handle_manage_submissions(context, client: WebClient, ack: Ack, body, logger):
   await ack()
   logic: AppLogic = context["logic"]
 
   resp = await client.views_open(
       trigger_id=body["trigger_id"],
-      view=get_manage_submitions_modal(logic)
+      view=get_manage_submissions_modal(logic)
   )
 
-def get_manage_submitions_modal(logic: AppLogic):
+def get_manage_submissions_modal(logic: AppLogic):
   return {
     "type": "modal",
-    "callback_id": "view_manage_submitions",
+    "callback_id": "view_manage_submissions",
     "title": {
       "type": "plain_text",
-      "text": "Manage submitions"
+      "text": "Manage submissions"
     },
     "close": {
       "type": "plain_text",
@@ -617,50 +617,50 @@ def get_manage_submitions_modal(logic: AppLogic):
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"Submitions: not graded - *{logic.course.get_all_ungraded_submitions()}*"
+          "text": f"Submissions: not graded - *{logic.course.get_all_ungraded_submissions()}*"
         },
         "accessory": {
           "type": "button",
           "style": "primary",
           "text": {
             "type": "plain_text",
-            "text": "Add submition",
+            "text": "Add submission",
           },
-          "action_id": "click_add_submition"
+          "action_id": "click_add_submission"
         }
       },
       {
         "type": "divider"
       },
-      *get_submitions_list_blocks(logic),
+      *get_submissions_list_blocks(logic),
     ]
   }
   
-def get_submitions_list_blocks(logic: AppLogic):
+def get_submissions_list_blocks(logic: AppLogic):
   blocks = []
 
-  if len(logic.course.submitions) == 0:
+  if len(logic.course.submissions) == 0:
     blocks.append({
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"*No submitions*"
+        "text": f"*No submissions*"
       }
     })
   else:
-    for event_id, submitions in logic.course.submitions.items():
-      blocks += get_event_submitions_fields(logic, event_id, submitions)
+    for event_id, submissions in logic.course.submissions.items():
+      blocks += get_event_submissions_fields(logic, event_id, submissions)
   
   return blocks
 
-def get_event_submitions_fields(logic: AppLogic, event_id: int, submitions: dict):
+def get_event_submissions_fields(logic: AppLogic, event_id: int, submissions: dict):
   event: Event = logic.course.get_event(event_id)
   if event is None:
     return []
   
   not_graded_c = 0
-  for submition in submitions.values():
-    if submition.get("result", None) is None:
+  for submission in submissions.values():
+    if submission.get("result", None) is None:
       not_graded_c += 1
   
   return [
@@ -668,17 +668,17 @@ def get_event_submitions_fields(logic: AppLogic, event_id: int, submitions: dict
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"*Event:* {event.name}, *Submitions:* {len(submitions)}, *Not graded:* {not_graded_c}"
+        "text": f"*Event:* {event.name}, *Submissions:* {len(submissions)}, *Not graded:* {not_graded_c}"
       },
       "accessory": {
         "type": "button",
         "style": "primary",
         "text": {
           "type": "plain_text",
-          "text": "Show submitions",
+          "text": "Show submissions",
         },
         "value": f"{event_id}",
-        "action_id": "click_show_submitions_per_event"
+        "action_id": "click_show_submissions_per_event"
       }
     },
     {
@@ -686,20 +686,20 @@ def get_event_submitions_fields(logic: AppLogic, event_id: int, submitions: dict
     },
   ]
 
-async def handle_add_submition(client: WebClient, ack: Ack, body, logger):
+async def handle_add_submission(client: WebClient, ack: Ack, body, logger):
   await ack()
   resp = await client.views_push(
       trigger_id=body["trigger_id"],
-      view=get_add_submition_modal()
+      view=get_add_submission_modal()
   )
 
-def get_add_submition_modal():
+def get_add_submission_modal():
   return {
     "type": "modal",
-    "callback_id": "view_add_submition",
+    "callback_id": "view_add_submission",
     "title": {
       "type": "plain_text",
-      "text": f"Add manual submition"
+      "text": f"Add manual submission"
     },
     "submit": {
       "type": "plain_text",
@@ -746,39 +746,39 @@ def get_add_submition_modal():
       },
       {
         "type": "input",
-        "block_id": "submition_info_input",
+        "block_id": "submission_info_input",
         "label": {
           "type": "plain_text",
-          "text": "Submition description:"
+          "text": "Submission description:"
         },
         "element": {
           "type": "plain_text_input",
-          "action_id": "submition_info",
+          "action_id": "submission_info",
           "min_length": 5,
           "max_length": 255,
           "placeholder": {
             "type": "plain_text",
-            "text": "Enter submition info"
+            "text": "Enter submission info"
           },
         },
       },
       {
         "type": "input",
-        "block_id": "submition_result_input",
+        "block_id": "submission_result_input",
         "element": {
           "type": "number_input",
           "is_decimal_allowed": False,
-          "action_id": "submition_result",
+          "action_id": "submission_result",
           "placeholder": {
             "type": "plain_text",
-            "text": "Enter submition grade"
+            "text": "Enter submission grade"
           },
           "min_value": "0",
           "max_value": "100"
         },
         "label": {
           "type": "plain_text",
-          "text": "Submition grade:"
+          "text": "Submission grade:"
         }
       },
     ]
@@ -804,7 +804,7 @@ def get_event_option(event: Event):
     "value": f"{event.id}"
   }
 
-async def modal_add_submition_callback(ack: Ack, context, body, client: WebClient): # TODO: it can write existed submitions, rewrite to arrays
+async def modal_add_submission_callback(ack: Ack, context, body, client: WebClient): # TODO: it can write existed submissions, rewrite to arrays
   await ack()
   logic: AppLogic = context["logic"]
   modal_values = body["view"]["state"]["values"]
@@ -812,52 +812,52 @@ async def modal_add_submition_callback(ack: Ack, context, body, client: WebClien
   submitter_id: str = body["user"]["id"]
   event_id: int = int(modal_values["event_select"]["event"]["selected_option"]["value"])
   user_id: str = modal_values["user_select"]["learners"]["selected_option"]["value"]
-  submition_info: str = modal_values["submition_info_input"]["submition_info"]["value"]
-  result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
+  submission_info: str = modal_values["submission_info_input"]["submission_info"]["value"]
+  result: int = int(modal_values["submission_result_input"]["submission_result"]["value"])
 
-  submition_id = logic.event_submition(event_id, user_id, {"info": submition_info}, submitter_id, result)
-  if submition_id is None:
-    await ack(response_action="errors", errors={"user_select": "Can't make submition for this user"})
+  submission_id = logic.event_submission(event_id, user_id, {"info": submission_info}, submitter_id, result)
+  if submission_id is None:
+    await ack(response_action="errors", errors={"user_select": "Can't make submission for this user"})
     return
   
   await ack()
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
-      view=get_manage_submitions_modal(logic)
+      view=get_manage_submissions_modal(logic)
   )
 
-  if logic.course.submitions_by_id[submition_id][2].get("result", None) is not None:
-    await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
+  if logic.course.submissions_by_id[submission_id][2].get("result", None) is not None:
+    await client.chat_postMessage(channel=user_id, blocks=get_submission_message_blocks(logic, submission_id))
 
-async def handle_show_submitions_per_event(client: WebClient, ack: Ack, body, logger, context):
+async def handle_show_submissions_per_event(client: WebClient, ack: Ack, body, logger, context):
   await ack()
   logic: AppLogic = context["logic"]
   event_id: int = int(body["actions"][0]["value"])
   resp = await client.views_push(
       trigger_id=body["trigger_id"],
-      view=get_submitions_per_event_modal(logic, event_id)
+      view=get_submissions_per_event_modal(logic, event_id)
   )
 
-def get_submitions_per_event_modal(logic: AppLogic, event_id: int):
+def get_submissions_per_event_modal(logic: AppLogic, event_id: int):
   event: Event = logic.course.get_event(event_id)
-  if event is None or logic.course.submitions.get(event_id, None) is None:
+  if event is None or logic.course.submissions.get(event_id, None) is None:
     return {}
   
   not_graded: dict[str, dict] = {}
   graded: dict[str, dict] = {}
-  for user_id, submition in logic.course.submitions[event_id].items():
-    if submition.get("result", None) is None:
-      not_graded.update({user_id: submition})
+  for user_id, submission in logic.course.submissions[event_id].items():
+    if submission.get("result", None) is None:
+      not_graded.update({user_id: submission})
     else:
-      graded.update({user_id: submition})
+      graded.update({user_id: submission})
   
   return {
     "type": "modal",
-    "callback_id": "view_submitions_per_event",
+    "callback_id": "view_submissions_per_event",
     "private_metadata": f"{event_id}",
     "title": {
       "type": "plain_text",
-      "text": f"Submitions per event"
+      "text": f"Submissions per event"
     },
     "close": {
       "type": "plain_text",
@@ -878,10 +878,10 @@ def get_submitions_per_event_modal(logic: AppLogic, event_id: int):
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"Not graded submitions - *{len(not_graded)}*"
+          "text": f"Not graded submissions - *{len(not_graded)}*"
         },
       },
-      *get_users_submitions_block(logic, None, not_graded),
+      *get_users_submissions_block(logic, None, not_graded),
       {
         "type": "divider"
       },
@@ -889,96 +889,96 @@ def get_submitions_per_event_modal(logic: AppLogic, event_id: int):
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"Graded submitions - *{len(graded)}*"
+          "text": f"Graded submissions - *{len(graded)}*"
         },
       },
-      *get_users_submitions_block(logic, None, graded),
+      *get_users_submissions_block(logic, None, graded),
     ]
   }
 
-def get_users_submitions_block(logic: AppLogic, event: Event, submitions: dict[str, dict]):
+def get_users_submissions_block(logic: AppLogic, event: Event, submissions: dict[str, dict]):
   blocks = []
-  if len(submitions) == 0:
+  if len(submissions) == 0:
     blocks.append({
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"*No submitions*"
+          "text": f"*No submissions*"
         },
     })
   else:
-    for user_id, submition in submitions.items():
+    for user_id, submission in submissions.items():
       user: User = logic.course.get_user(user_id)
-      blocks += get_submition_blocks(logic, event, user, submition)
+      blocks += get_submission_blocks(logic, event, user, submission)
     
   return blocks
 
-def get_submition_blocks(logic: AppLogic, event: Event, user: User, submition_data: dict):
-  submition = submition_data["submition"]
-  graded_by = submition_data.get('submitter_id', None)
-  result = submition_data.get("result", None)
-  id = submition_data.get("id", None)
+def get_submission_blocks(logic: AppLogic, event: Event, user: User, submission_data: dict):
+  submission = submission_data["submission"]
+  graded_by = submission_data.get('submitter_id', None)
+  result = submission_data.get("result", None)
+  id = submission_data.get("id", None)
 
   return [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"{'Event: *{}*, '.format(event.name) if event is not None else ''}<@{user.platform_id}>{', has files' if submition.get('files', None) is not None else ''}{', grade: *{}*'.format(result) if result is not None else ''}{' by <@{}>'.format(graded_by) if graded_by is not None and result is not None else ''}"
+        "text": f"{'Event: *{}*, '.format(event.name) if event is not None else ''}<@{user.platform_id}>{', has files' if submission.get('files', None) is not None else ''}{', grade: *{}*'.format(result) if result is not None else ''}{' by <@{}>'.format(graded_by) if graded_by is not None and result is not None else ''}"
       },
       "accessory": {
           "type": "button",
           "style": "primary",
           "text": {
             "type": "plain_text",
-            "text": "See submition",
+            "text": "See submission",
           },
           "value": f"{id}",
-          "action_id": "click_see_submition"
+          "action_id": "click_see_submission"
       }
     },
   ]
 
-async def handle_see_submition(client: WebClient, ack: Ack, body, context, logger):
+async def handle_see_submission(client: WebClient, ack: Ack, body, context, logger):
   await ack()
   logic: AppLogic = context["logic"]
   viewer_id = body["user"]["id"]
   viewer: User = logic.course.get_user(viewer_id)
   # event_id: int = int(body["view"]["private_metadata"])
 
-  submition_id: str = int(body["actions"][0]["value"])
-  submition = logic.course.submitions_by_id.get(submition_id, None)
-  user: User = logic.course.get_user(submition[1])
+  submission_id: str = int(body["actions"][0]["value"])
+  submission = logic.course.submissions_by_id.get(submission_id, None)
+  user: User = logic.course.get_user(submission[1])
   if user is None:
     return
   
   if body.get("view", None) is not None and body["view"]["type"] == "modal":
     await client.views_push(
         trigger_id=body["trigger_id"],
-        view=get_see_submition_modal(logic, viewer, user, submition[2])
+        view=get_see_submission_modal(logic, viewer, user, submission[2])
     )
   else:
     await client.views_open(
         trigger_id=body["trigger_id"],
-        view=get_see_submition_modal(logic, viewer, user, submition[2])
+        view=get_see_submission_modal(logic, viewer, user, submission[2])
     )
 
-def get_see_submition_modal(logic: AppLogic, viewer: User, user: User, submition_data):
-  submition_id = submition_data["id"]
-  result = submition_data["result"]
+def get_see_submission_modal(logic: AppLogic, viewer: User, user: User, submission_data):
+  submission_id = submission_data["id"]
+  result = submission_data["result"]
   modal = {
     "type": "modal",
-    "callback_id": "view_see_submition",
-    "private_metadata": f"{submition_id}",
+    "callback_id": "view_see_submission",
+    "private_metadata": f"{submission_id}",
     "title": {
       "type": "plain_text",
-      "text": f"User's submition"
+      "text": f"User's submission"
     },
     "close": {
       "type": "plain_text",
       "text": "Close"
     },
-    "blocks": get_user_submition_blocks(user, submition_data)
+    "blocks": get_user_submission_blocks(user, submission_data)
   }
 
   if result is None and viewer.is_teacher() and viewer != user:
@@ -990,62 +990,62 @@ def get_see_submition_modal(logic: AppLogic, viewer: User, user: User, submition
     modal["blocks"] += [
       {
         "type": "input",
-        "block_id": "submition_result_input",
+        "block_id": "submission_result_input",
         "element": {
           "type": "number_input",
           "is_decimal_allowed": False,
-          "action_id": "submition_result",
+          "action_id": "submission_result",
           "placeholder": {
             "type": "plain_text",
-            "text": "Enter submition grade"
+            "text": "Enter submission grade"
           },
           "min_value": "0",
           "max_value": "100"
         },
         "label": {
           "type": "plain_text",
-          "text": "Submition grade:"
+          "text": "Submission grade:"
         }
       }
     ]
 
   return modal
 
-def get_user_submition_blocks(user: User, submition: dict):
-  submition_data = submition["submition"]
-  result = submition["result"]
-  date = submition.get("date", "*no date*")
-  submitter_id = submition.get("submitter_id", None)
+def get_user_submission_blocks(user: User, submission: dict):
+  submission_data = submission["submission"]
+  result = submission["result"]
+  date = submission.get("date", "*no date*")
+  submitter_id = submission.get("submitter_id", None)
   blocks = [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": f"It is <@{user.platform_id}>'s submition from {date}"
+        "text": f"It is <@{user.platform_id}>'s submission from {date}"
       },
     }
   ]
 
-  info = submition_data.get("info", None)
+  info = submission_data.get("info", None)
   if info is not None:
     blocks += [
       {
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"Submition info: {info}"
+          "text": f"Submission info: {info}"
         },
       }
     ]
 
-  files = submition_data.get("files", [])
+  files = submission_data.get("files", [])
   if len(files) != 0:
     for file in files:
       blocks.append({
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": f"File submition: <{file['permalink']}|{decode_unicode_string(file['name'])}>",
+          "text": f"File submission: <{file['permalink']}|{decode_unicode_string(file['name'])}>",
         }
       })
 
@@ -1060,64 +1060,64 @@ def get_user_submition_blocks(user: User, submition: dict):
 
   return blocks
 
-async def modal_see_submition_callback(ack: Ack, context, body, client: WebClient): # TODO: it can write existed submitions, rewrite to arrays
+async def modal_see_submission_callback(ack: Ack, context, body, client: WebClient): # TODO: it can write existed submissions, rewrite to arrays
   logic: AppLogic = context["logic"]
   modal_values = body["view"]["state"]["values"]
 
   submitter_id: str = body["user"]["id"]
-  submition_id: int = int(body["view"]["private_metadata"])
-  result: int = int(modal_values["submition_result_input"]["submition_result"]["value"])
+  submission_id: int = int(body["view"]["private_metadata"])
+  result: int = int(modal_values["submission_result_input"]["submission_result"]["value"])
 
-  updated = logic.grade_event_submition(submitter_id, submition_id, result)
+  updated = logic.grade_event_submission(submitter_id, submission_id, result)
   if not updated:
-    await ack(response_action="errors", errors={"submition_result_input": "Can't grade this submition"})
+    await ack(response_action="errors", errors={"submission_result_input": "Can't grade this submission"})
     return
 
   await ack()
-  user_id = logic.course.submitions_by_id[submition_id][1]
-  await client.chat_postMessage(channel=user_id, blocks=get_submition_message_blocks(logic, submition_id))
+  user_id = logic.course.submissions_by_id[submission_id][1]
+  await client.chat_postMessage(channel=user_id, blocks=get_submission_message_blocks(logic, submission_id))
   
   if body["view"]["previous_view_id"] is not None:
     await client.views_update(
       view_id=body["view"]["previous_view_id"],
-      view=get_submitions_per_event_modal(logic, logic.course.submitions_by_id[submition_id][0])
+      view=get_submissions_per_event_modal(logic, logic.course.submissions_by_id[submission_id][0])
     )
   
     await client.views_update(
       view_id=body["view"]["root_view_id"],
-      view=get_manage_submitions_modal(logic)
+      view=get_manage_submissions_modal(logic)
     )
 
   await update_home_teachers_user(logic, user_id, client)
 
-def get_submition_message_blocks(logic: AppLogic, submition_id: int):
-  submition = logic.course.submitions_by_id.get(submition_id, None)
-  if submition is None:
+def get_submission_message_blocks(logic: AppLogic, submission_id: int):
+  submission = logic.course.submissions_by_id.get(submission_id, None)
+  if submission is None:
     return []
   
-  event: Event = logic.course.get_event(submition[0])
+  event: Event = logic.course.get_event(submission[0])
   if event is None:
     return []
   
-  user: User = logic.course.get_user(submition[1])
+  user: User = logic.course.get_user(submission[1])
   if user is None:
     return []
   
-  submition = submition[2]
+  submission = submission[2]
   
-  result = submition.get("result", None)
-  submitter_id = submition.get("submitter_id", None)
+  result = submission.get("result", None)
+  submitter_id = submission.get("submitter_id", None)
   result_str = ""
   if result is not None:
     result_str = f"Grade: {result}, by <@{submitter_id}>"
 
   message_texts = []
-  submition_data = submition["submition"]
-  if submition_data.get("info", None) is not None:
-    message_texts.append(f"info - {submition_data.get('info', None)}")
-  if submition_data.get("files", None) is not None:
+  submission_data = submission["submission"]
+  if submission_data.get("info", None) is not None:
+    message_texts.append(f"info - {submission_data.get('info', None)}")
+  if submission_data.get("files", None) is not None:
     message = ["files:"]
-    for file in submition_data.get("files", None):
+    for file in submission_data.get("files", None):
       message.append(f"<{file['permalink']}|file>")
     message_texts.append(" ".join(message))
   
@@ -1140,10 +1140,10 @@ def get_submition_message_blocks(logic: AppLogic, submition_id: int):
           "style": "primary",
           "text": {
             "type": "plain_text",
-            "text": "See submition",
+            "text": "See submission",
           },
-          "value": f"{submition_id}",
-          "action_id": "click_see_submition"
+          "value": f"{submission_id}",
+          "action_id": "click_see_submission"
         }
       ]
     })
@@ -1162,27 +1162,27 @@ def get_learner_blocks(user: User, logic: AppLogic):
     {
       "type": "divider"
     },
-    *get_learner_submitions_section_blocks(user, logic),
+    *get_learner_submissions_section_blocks(user, logic),
   ]
 
   return blocks
 
-def get_learner_submitions_section_blocks(user: User, logic: AppLogic):
+def get_learner_submissions_section_blocks(user: User, logic: AppLogic):
   blocks = []
-  user_submitions_c = 0
-  for submition in logic.course.submitions_by_id.values():
-    user_id = submition[1]
-    event = logic.course.get_event(submition[0])
+  user_submissions_c = 0
+  for submission in logic.course.submissions_by_id.values():
+    user_id = submission[1]
+    event = logic.course.get_event(submission[0])
     if user.platform_id == user_id:
-      user_submitions_c += 1
-      blocks += get_submition_blocks(logic, event, user, submition[2])
+      user_submissions_c += 1
+      blocks += get_submission_blocks(logic, event, user, submission[2])
 
   return [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "No submitions" if user_submitions_c == 0 else f"Submitions: {user_submitions_c}", # f"*Test type:* _{test_types_str[test.type]}_"
+        "text": "No submissions" if user_submissions_c == 0 else f"Submissions: {user_submissions_c}", # f"*Test type:* _{test_types_str[test.type]}_"
       }
     },
   ] + blocks

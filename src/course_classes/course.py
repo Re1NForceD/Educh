@@ -19,8 +19,8 @@ class Course:
       self.events: dict[int, Event] = {}
       self.users: dict[str, User] = {}
 
-    self.submitions: dict[int, dict[str, dict]] = {}
-    self.submitions_by_id: dict[int, list[int, str, dict]] = {}
+    self.submissions: dict[int, dict[str, dict]] = {}
+    self.submissions_by_id: dict[int, list[int, str, dict]] = {}
 
   def is_can_be_worked_with(self) -> bool:
     if self.channel_id is None:
@@ -107,49 +107,49 @@ class Course:
     for user_data in data["users"]:
       self.add_user(User(data=user_data))
 
-  def get_all_ungraded_submitions(self):
+  def get_all_ungraded_submissions(self):
     ungraded = 0
-    for submition in self.submitions_by_id.values():
-      if submition[2]["result"] is None:
+    for submission in self.submissions_by_id.values():
+      if submission[2]["result"] is None:
         ungraded += 1
     return ungraded
 
-  def colect_submition(self, event_submitions: dict): # {event_id: {user_id: {submition, result}}}
-    for event_id, submitions in event_submitions.items():
+  def colect_submission(self, event_submissions: dict): # {event_id: {user_id: {submission, result}}}
+    for event_id, submissions in event_submissions.items():
       if not isinstance(event_id, int):
         event_id = int(event_id)
 
       event: Event = self.get_event(event_id)
       if event is None:
-        logger.warning(f"try to collect submitions but event not found: {event_id}")
+        logger.warning(f"try to collect submissions but event not found: {event_id}")
         continue
       
-      event_submition: dict = self.submitions.get(event_id, None)
-      if event_submition is None:
-        self.submitions[event_id] = {}
-        event_submition = self.submitions.get(event_id, None)
+      event_submission: dict = self.submissions.get(event_id, None)
+      if event_submission is None:
+        self.submissions[event_id] = {}
+        event_submission = self.submissions.get(event_id, None)
       
-      for user_id, submition in submitions.items():
+      for user_id, submission in submissions.items():
         user: User = self.get_user(user_id)
         if user is None: # or user != U_LEARNER:
-          logger.warning(f"try to submition for invalid user: {user} - {user.role if user is not None else E_INVALID}")
+          logger.warning(f"try to submission for invalid user: {user} - {user.role if user is not None else E_INVALID}")
           continue
         
-        if user_id in event_submition:
-          logger.warning(f"update user {user_id} event submition")
+        if user_id in event_submission:
+          logger.warning(f"update user {user_id} event submission")
 
-        event_submition[user_id] = submition
-        self.submitions_by_id[submition["id"]] = [event_id, user_id, submition]
+        event_submission[user_id] = submission
+        self.submissions_by_id[submission["id"]] = [event_id, user_id, submission]
 
-        if submition.get("date", None) is None:
-          submition["date"] = datetime_to_str(datetime.datetime.now())
+        if submission.get("date", None) is None:
+          submission["date"] = datetime_to_str(datetime.datetime.now())
 
-  def update_submition(self, submitter_id, submition_id, result):
-    submition = self.submitions_by_id[submition_id][2]
-    submition["submitter_id"] = submitter_id
-    submition["result"] = result
+  def update_submission(self, submitter_id, submission_id, result):
+    submission = self.submissions_by_id[submission_id][2]
+    submission["submitter_id"] = submitter_id
+    submission["result"] = result
 
-  def grade_submition(self, event_id, submition):
+  def grade_submission(self, event_id, submission):
     event: Event = self.get_event(event_id)
 
     if event is None:
@@ -157,6 +157,6 @@ class Course:
       return None
 
     if event.type == E_TEST:
-      return event.get_result(submition)
+      return event.get_result(submission)
     
     return None

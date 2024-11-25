@@ -31,7 +31,7 @@ create table if not exists course_event
   course_id     int unsigned not null,
   event_type_id int unsigned not null,
   name          varchar(255) not null,
-  start_time    TIMESTAMP    not nulL,
+  start_time    TIMESTAMP    not null,
   info          text         not null,
   
   published  BOOL      not null default 0,
@@ -113,18 +113,18 @@ create table if not exists course_user
   constraint course_user_role_id_cnstr foreign key(role_id) references user_role(id) 
 );
 
-create table if not exists course_event_submition
+create table if not exists course_event_submission
 (
   id         int unsigned not null auto_increment primary key,
   event_id   INT UNSIGNED NOT NULL,
   user_id    VARCHAR(64)  NOT NULL,
-  submition  text         not null,
+  submission  text        not null,
   submitter_id VARCHAR(64)    null,
   result     int unsigned     null,
   
   created_at TIMESTAMP not null default CURRENT_TIMESTAMP,
   
-  constraint ce_submition_event_id_cnstr foreign key(event_id) references course_event(id)
+  constraint ce_submission_event_id_cnstr foreign key(event_id) references course_event(id)
 );
 
 -- test lines

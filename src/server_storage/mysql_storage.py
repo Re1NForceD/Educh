@@ -60,7 +60,7 @@ class MySQLStorage(DataStorage):
       cursor.execute(query)
       return cursor.rowcount
 
-  def verify_app(self, course_id: int, key: str) -> str:
+  def verify_app(self, course_id: int, key: str) -> str: # TODO: make method to extract & return hash, not validate here
     cnx = self.get_cnx()
     rows = self.exec_select(
         cnx, f"select id, name, hash from course where id = {course_id}")
@@ -228,32 +228,32 @@ class MySQLStorage(DataStorage):
       self.remove_event(cnx, course_id, event)
     cnx.commit()
   
-  def get_event_submitions(self, course_id: int):
+  def get_event_submissions(self, course_id: int):
     cnx = self.get_cnx()
-    submitions: dict[int, dict] = {}
-    for submition in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submition, ces.submitter_id, ces.result, ces.created_at from course_event_submition ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
-      submition_id = submition[0]
-      if submition_id is None:
-        logger.warning(f"got invalid submition row: {submition}")
+    submissions: dict[int, dict] = {}
+    for submission in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submission, ces.submitter_id, ces.result, ces.created_at from course_event_submission ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
+      submission_id = submission[0]
+      if submission_id is None:
+        logger.warning(f"got invalid submission row: {submission}")
         continue
       
-      event_id = submition[1]
-      user_id = submition[2]
-      submition_d = {"id": submition_id, "submition": json.loads(submition[3]), "submitter_id": submition[4], "result": submition[5], "date": datetime_to_str(submition[6])}
-      if submitions.get(event_id, None) is None:
-        submitions[event_id] = {}
-      submitions[event_id][user_id] = submition_d
-    return submitions
+      event_id = submission[1]
+      user_id = submission[2]
+      submission_d = {"id": submission_id, "submission": json.loads(submission[3]), "submitter_id": submission[4], "result": submission[5], "date": datetime_to_str(submission[6])}
+      if submissions.get(event_id, None) is None:
+        submissions[event_id] = {}
+      submissions[event_id][user_id] = submission_d
+    return submissions
   
-  def save_event_submition(self, course_id: int, event_id: int, user_id: str, submition: dict, submitter_id: str, result: int):
+  def save_event_submission(self, course_id: int, event_id: int, user_id: str, submission: dict, submitter_id: str, result: int):
     cnx = self.get_cnx()
     
-    row = self.exec_select(cnx, f"select result from course_event_submition where user_id='{user_id}' and event_id={event_id}")
+    row = self.exec_select(cnx, f"select result from course_event_submission where user_id='{user_id}' and event_id={event_id}")
     if len(row) > 0:
       return None
     
-    columns = ["event_id","user_id","submition"]
-    values = [f"{event_id}", f"'{user_id}'", f"'{json.dumps(submition)}'"]
+    columns = ["event_id","user_id","submission"]
+    values = [f"{event_id}", f"'{user_id}'", f"'{json.dumps(submission)}'"]
     if submitter_id is not None:
       columns.append("submitter_id")
       values.append(f"'{submitter_id}'")
@@ -261,15 +261,15 @@ class MySQLStorage(DataStorage):
       columns.append("result")
       values.append(f"{result}")
 
-    id = self.exec_insert(cnx, f"insert into course_event_submition ({','.join(columns)}) values({','.join(values)})")
+    id = self.exec_insert(cnx, f"insert into course_event_submission ({','.join(columns)}) values({','.join(values)})")
     cnx.commit()
     return id
   
-  def grade_event_submition(self, submition_id, submitter_id, result):
+  def grade_event_submission(self, submission_id, submitter_id, result):
     cnx = self.get_cnx()
-    row = self.exec_select(cnx, f"select result from course_event_submition where id = {submition_id}")[0]
+    row = self.exec_select(cnx, f"select result from course_event_submission where id = {submission_id}")[0]
     if row[0] is None:
-      self.exec_update(cnx, f"update course_event_submition set submitter_id='{submitter_id}', result={result} where id={submition_id}")
+      self.exec_update(cnx, f"update course_event_submission set submitter_id='{submitter_id}', result={result} where id={submission_id}")
       cnx.commit()
       return False
     else:

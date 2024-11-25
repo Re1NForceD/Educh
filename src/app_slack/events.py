@@ -62,7 +62,7 @@ def register_app_events(app, logic: AppLogic):
   
   app.action("manage_events")(handle_manage_events)
   app.action("manage_users")(handle_manage_users)
-  app.action("manage_submitions")(handle_manage_submitions)
+  app.action("manage_submissions")(handle_manage_submissions)
 
   app.action("click_add_event")(handle_add_event)
   app.view("view_event_setup")(modal_event_setup_callback)
@@ -89,10 +89,10 @@ def register_app_events(app, logic: AppLogic):
   app.action("click_edit_user")(handle_edit_user)
   app.action("click_remove_user")(handle_remove_user)
 
-  app.action("click_add_submition")(handle_add_submition)
+  app.action("click_add_submission")(handle_add_submission)
   app.options("event")(event_options)
   app.options("learners")(learners_options)
-  app.view("view_add_submition")(modal_add_submition_callback)
-  app.action("click_show_submitions_per_event")(handle_show_submitions_per_event)
-  app.action("click_see_submition")(handle_see_submition)
-  app.view("view_see_submition")(modal_see_submition_callback)
+  app.view("view_add_submission")(modal_add_submission_callback)
+  app.action("click_show_submissions_per_event")(handle_show_submissions_per_event)
+  app.action("click_see_submission")(handle_see_submission)
+  app.view("view_see_submission")(modal_see_submission_callback)

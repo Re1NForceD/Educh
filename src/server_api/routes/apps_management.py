@@ -160,15 +160,15 @@ def app_remove_events():
   return {"course_data": course.to_dict()}, 200
 
 
-@ep_app_verified.route("/event_submitions", methods=["GET"])
-def app_get_event_submitions():
+@ep_app_verified.route("/event_submissions", methods=["GET"])
+def app_get_event_submissions():
   logic: Logic = current_app.config['logic']  
-  submitions: dict[int, dict] = logic.get_event_submitions(g.course_id)
-  return {"submitions": submitions}, 200
+  submissions: dict[int, dict] = logic.get_event_submissions(g.course_id)
+  return {"submissions": submissions}, 200
 
 
-@ep_app_verified.route("/event_submitions", methods=["POST"])
-def app_post_event_submition():
+@ep_app_verified.route("/event_submissions", methods=["POST"])
+def app_post_event_submission():
   logic: Logic = current_app.config['logic']
   course = logic.get_course_data(g.course_id)
 
@@ -176,24 +176,24 @@ def app_post_event_submition():
     raise BadRequest("not found field: event_id")
   if "user_id" not in request.json:
     raise BadRequest("not found field: user_id")
-  if "submition" not in request.json:
-    raise BadRequest("not found field: submition")
+  if "submission" not in request.json:
+    raise BadRequest("not found field: submission")
   
-  id, result = logic.post_event_submition(course, request.json["event_id"], request.json["user_id"], request.json["submition"], request.json.get("submitter_id", None), request.json.get("result", None))
+  id, result = logic.post_event_submission(course, request.json["event_id"], request.json["user_id"], request.json["submission"], request.json.get("submitter_id", None), request.json.get("result", None))
   return {"id": id, "result": result}, 200
 
 
-@ep_app_verified.route("/event_submitions", methods=["PUT"])
-def app_grade_event_submition():
+@ep_app_verified.route("/event_submissions", methods=["PUT"])
+def app_grade_event_submission():
   logic: Logic = current_app.config['logic']
 
-  if "submition_id" not in request.json:
-    raise BadRequest("not found field: submition_id")
+  if "submission_id" not in request.json:
+    raise BadRequest("not found field: submission_id")
   if "submitter_id" not in request.json:
     raise BadRequest("not found field: submitter_id")
   if "result" not in request.json:
     raise BadRequest("not found field: result")
   
-  updated = logic.grade_event_submition(request.json["submition_id"], request.json["submitter_id"], request.json["result"])
+  updated = logic.grade_event_submission(request.json["submission_id"], request.json["submitter_id"], request.json["result"])
   return {"code": 0 if updated else 1}, 200
 
