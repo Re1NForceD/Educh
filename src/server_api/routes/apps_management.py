@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, current_app, request, g
 import logging
-import base64
 import uuid
 from werkzeug.exceptions import BadRequest, Unauthorized, Locked
 
@@ -10,7 +9,6 @@ from server_logic import *
 logger = logging.getLogger()
 
 k_c_apps = dict() # session key = course_id
-c_k_apps = dict() # course_id = session key
 
 
 ep_app = Blueprint("app", __name__)
@@ -22,27 +20,17 @@ ep_app.register_blueprint(ep_app_verified)
 def verify():
   if "auth_key" not in request.json:
     raise BadRequest("not found field: auth_key")
-  
-  # mock_key = base64.b64encode("1+dGVzdF9jb3Vyc2U=".encode('utf-8'), altchars=b"()")  
-  course_id_str, auth_key = base64.b64decode(request.json["auth_key"].encode('utf-8'), altchars=b"()").decode('utf-8').split("+")
-  course_id = int(course_id_str)
 
-  logic = current_app.config['logic']
+  logic: Logic = current_app.config['logic']
+  course_id = logic.verify_app(request.json["auth_key"].encode('utf-8'))
 
-  course_name = logic.verify_app(course_id, auth_key)
-
-  if not course_name:
+  if course_id is None:
     raise Unauthorized("invalid app creds")
 
-  logger.info(f"app for course {course_id_str} is verified")
-
   session_key = uuid.uuid4()
-  k_c_apps[session_key] = course_id # session key = course_id
-  c_k_apps[course_id] = session_key # course_id = session key
+  k_c_apps[session_key] = course_id
 
-  course = logic.get_course_data(course_id)
-
-  return jsonify({"course_data": course.to_dict(), "session_key": session_key}), 200
+  return jsonify({"course_data": logic.get_course_data(course_id).to_dict(), "session_key": session_key}), 200
 
 
 @ep_app_verified.before_request

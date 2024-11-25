@@ -1,5 +1,7 @@
 import os
 import logging
+import base64
+import bcrypt
 
 from course_classes import *
 from server_storage import *
@@ -18,8 +20,20 @@ class Logic:
   def _restore(self): # TODO
     pass
 
-  def verify_app(self, course_id: int, hash: str) -> str:
-    return self._storage.verify_app(course_id, hash)
+  def verify_app(self, auth_key: str) -> int:
+    # mock_key = base64.b64encode("1+dGVzdF9jb3Vyc2U=".encode('utf-8'), altchars=b"()")
+    course_id_str, course_key = base64.b64decode(auth_key, altchars=b"()").decode('utf-8').split("+")
+    course_id = int(course_id_str)
+    
+    course_key_db = self._storage.get_course_auth_data(course_id)
+
+    if not bcrypt.checkpw(course_key.encode('utf-8'), course_key_db.encode('utf-8')):
+      logger.error(f"invalid course creds: {course_id}, {course_key}")
+      return None
+
+    logger.info(f"app for course <{course_id}> is verified")
+    
+    return course_id
 
   def get_course_data(self, course_id: int):
     return self._storage.get_course_data(course_id)

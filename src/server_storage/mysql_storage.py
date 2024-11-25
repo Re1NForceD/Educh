@@ -1,5 +1,4 @@
 import os
-import bcrypt
 import logging
 import mysql.connector
 import json
@@ -60,20 +59,16 @@ class MySQLStorage(DataStorage):
       cursor.execute(query)
       return cursor.rowcount
 
-  def verify_app(self, course_id: int, key: str) -> str: # TODO: make method to extract & return hash, not validate here
+  def get_course_auth_data(self, course_id: int) -> str:
     cnx = self.get_cnx()
     rows = self.exec_select(
-        cnx, f"select id, name, hash from course where id = {course_id}")
+        cnx, f"select hash from course where id = {course_id}")
 
     if len(rows) != 1:
       logger.error(f"course {course_id} has invalid record")
-      return ""
+      return None
 
-    if not bcrypt.checkpw(key.encode('utf-8'), rows[0][2].encode('utf-8')):
-      logger.error(f"invalid course creds: {course_id}, {key}")
-      return ""
-
-    return rows[0][1]
+    return rows[0][0]
   
   def get_event(self, db_row) -> Event:
     event = get_event(id=db_row[0], type=db_row[1], name=db_row[2], start_time=db_row[3], info=db_row[4], published=db_row[5])
