@@ -27,6 +27,16 @@ class AppLogic:
     r = func(url=self.get_url(path), json=json, headers={"Session-Key": self.__session_key})
     return r
 
+  def start(self):
+    r = self.send_req(func=requests.get, path=ep_health)
+    if not r.ok:
+      raise RuntimeError("can't connect to server")
+    
+    self.verify()
+    self.request_submissions() # TODO: put in verify
+    
+    return True
+
   def verify(self):
     r = self.send_req(func=requests.put, path=ep_verify, json={"auth_key": self.__auth_key})
     if not r.ok:
@@ -41,24 +51,19 @@ class AppLogic:
 
     return True
 
-  def start(self):
-    r = self.send_req(func=requests.get, path=ep_health)
+  def request_submissions(self):
+    r = self.send_req(func=requests.get, path=ep_event_submissions)
     if not r.ok:
-      raise RuntimeError("can't connect to server")
+      raise RuntimeError("can't get event_submissions")
     
-    self.verify()
-    self.request_submissions() # TODO: put in verify
-    
-    return True
+    r_data=r.json()
+    self.course.colect_submission(r_data["submissions"])
 
   def is_first_launch(self):
     return self.course.channel_id is None or len(self.course.users) == 0
 
   def is_can_start_course(self):
     return len(self.course.events) > 0
-
-  def is_teacher_user(self, user_id: str):
-    return self.course.is_teacher_user(user_id)
 
   def is_in_process(self):
     return self.course.started_at is not None
@@ -144,14 +149,6 @@ class AppLogic:
     if submission_id is not None:
       self.course.colect_submission({event_id: {user_id: {"id": submission_id, "submission": submission, "submitter_id": submitter_id, "result": r_data["result"]}}})
     return submission_id
-
-  def request_submissions(self):
-    r = self.send_req(func=requests.get, path=ep_event_submissions)
-    if not r.ok:
-      raise RuntimeError("can't get event_submissions")
-    
-    r_data=r.json()
-    self.course.colect_submission(r_data["submissions"])
 
   def grade_event_submission(self, submitter_id: str, submission_id: int, result: int):
     user: User = self.course.get_user(submitter_id)

@@ -1162,6 +1162,13 @@ def get_learner_blocks(user: User, logic: AppLogic):
     {
       "type": "divider"
     },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": f"*Course state:* _{'running' if logic.is_in_process() else 'setuping'}_"
+      }
+    },
     *get_learner_submissions_section_blocks(user, logic),
   ]
 

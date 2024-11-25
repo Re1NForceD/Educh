@@ -55,9 +55,6 @@ class Course:
   def remove_event(self, event_id: int):
     return self.events.pop(event_id, None)
 
-  def is_teacher_user(self, user_id: str):
-    return self.users[user_id].is_teacher()
-
   def is_user_id_exists(self, user_id: str):
     return user_id in self.users
 

@@ -29,7 +29,8 @@ async def main():
   }
 
   app_logic = app_logic_api.AppLogic(logic_config)
-  slack_app = app_slack.init_slack_app(app_config, app_logic)
+
+  slack_app = app_slack.SlackApp(app_config, app_logic)
   await slack_app.start()
 
 if __name__ == "__main__":

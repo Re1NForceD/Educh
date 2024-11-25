@@ -79,7 +79,7 @@ class MySQLStorage(DataStorage):
       event.url = db_row[7]
     elif event.type == E_TEST: # cols: 8, 9
       event.duration_m = db_row[8]
-      event.from_dict_configs(json.loads(db_row[9]))
+      event.from_dict_configs(json.loads(decode_unicode_string(db_row[9])))
     elif event.type == E_ASSIGNMENT: # cols: none
       pass
     return event
@@ -146,7 +146,7 @@ class MySQLStorage(DataStorage):
     self.exec_insert(cnx, f"insert into course_event_details_class (event_id, duration_m, url) values({event.id}, {event.duration_m}, '{event.url}')")
 
   def insert_event_details_test(self, cnx, event: TestEvent):
-    self.exec_insert(cnx, f"insert into course_event_details_test (event_id, duration_m, configs) values({event.id}, {event.duration_m}, '{json.dumps(event.to_dict_configs())}')")
+    self.exec_insert(cnx, f"insert into course_event_details_test (event_id, duration_m, configs) values({event.id}, {event.duration_m}, {repr(json.dumps(event.to_dict_configs()))})")
 
   def insert_event_details_assignment(self, cnx, event: AssignmentEvent):
     self.exec_insert(cnx, f"insert into course_event_details_assignment (event_id) values({event.id})")
@@ -185,7 +185,7 @@ class MySQLStorage(DataStorage):
     self.exec_update(cnx, f"update course_event_details_class set duration_m={event.duration_m}, url='{event.url}' where event_id={event.id}")
 
   def update_event_details_test(self, cnx, event: TestEvent):
-    self.exec_update(cnx, f"update course_event_details_test set duration_m={event.duration_m}, configs='{json.dumps(event.to_dict_configs())}' where event_id={event.id}")
+    self.exec_update(cnx, f"update course_event_details_test set duration_m={event.duration_m}, configs={repr(json.dumps(event.to_dict_configs()))} where event_id={event.id}")
 
   def update_event_details_assignment(self, cnx, event: AssignmentEvent):
     pass
@@ -234,7 +234,7 @@ class MySQLStorage(DataStorage):
       
       event_id = submission[1]
       user_id = submission[2]
-      submission_d = {"id": submission_id, "submission": json.loads(submission[3]), "submitter_id": submission[4], "result": submission[5], "date": datetime_to_str(submission[6])}
+      submission_d = {"id": submission_id, "submission": json.loads(decode_unicode_string(submission[3])), "submitter_id": submission[4], "result": submission[5], "date": datetime_to_str(submission[6])}
       if submissions.get(event_id, None) is None:
         submissions[event_id] = {}
       submissions[event_id][user_id] = submission_d

@@ -73,7 +73,9 @@ class TestConfigSignle(TestConfig):
       return
     
     if self.ans_hash == var_hash:
-      self.ans_hash = next(iter(self.variants))
+      for hash in self.variants:
+        self.ans_hash = hash
+        continue
 
   def get_result(self, answer: dict):
     return 100 if self.ans_hash == answer["var_hash"] else 0
