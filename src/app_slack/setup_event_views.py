@@ -288,7 +288,7 @@ def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
   ]
 
   if event.duration_m is not None:
-    blocks[0]["initial_value"] = event.duration_m
+    blocks[0]["element"]["initial_value"] = f"{event.duration_m}"
 
   if len(event.configs) == 0:
     blocks.append({

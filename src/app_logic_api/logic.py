@@ -18,7 +18,7 @@ class AppLogic:
     self.server_address = config["SERVER_ADDRESS"]
     self.__auth_key = config["AUTH_KEY"]
     self.__session_key = ""
-    self.course = None
+    self.course: Course = None
 
   def get_url(self, path):
     return f"{self.server_address}/{path}"
