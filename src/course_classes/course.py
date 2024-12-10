@@ -12,6 +12,9 @@ class Course:
     if data is not None:
       self.from_dict(data)
     else:
+      if id is None or name is None:
+        raise RuntimeError("need id and name or data to create course")
+      
       self.id = id
       self.name = name
       self.channel_id = channel_id
@@ -92,6 +95,10 @@ class Course:
   def from_dict(self, data: dict):
     self.id = data["id"]
     self.name = data["name"]
+
+    if self.id is None or self.name is None:
+      raise RuntimeError("course_data has no id or name")
+    
     self.channel_id = data["channel_id"]
     self.started_at = datetime_from_str(data["started_at"])
 

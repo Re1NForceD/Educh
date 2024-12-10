@@ -58,6 +58,12 @@ class MySQLStorage(DataStorage):
     with cnx.cursor() as cursor:
       cursor.execute(query)
       return cursor.rowcount
+    
+  def create_course(self, name, hash) -> int:
+    cnx = self.get_cnx()
+    course_id = self.exec_insert(cnx, f"insert into course (name, hash) values ('{name}', '{hash}')")
+    cnx.commit()
+    return course_id
 
   def get_course_auth_data(self, course_id: int) -> str:
     cnx = self.get_cnx()
@@ -65,7 +71,7 @@ class MySQLStorage(DataStorage):
         cnx, f"select hash from course where id = {course_id}")
 
     if len(rows) != 1:
-      logger.error(f"course {course_id} has invalid record")
+      logger.error(f"course {course_id} has invalid record: {rows}")
       return None
 
     return rows[0][0]

@@ -16,6 +16,9 @@ class DataStorage():
   def validate_config(self, config: dict) -> bool:
     pass
   
+  def create_course(self, name, hash) -> int:
+    pass
+  
   def get_course_auth_data(self, course_id: int) -> str:
     pass
   

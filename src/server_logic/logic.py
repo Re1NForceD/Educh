@@ -19,6 +19,14 @@ class Logic:
 
   def _restore(self): # TODO
     pass
+  
+  def create_course(self, name: str) -> list[int, str]:
+    bytes = base64.b64encode(name.encode('utf-8'))
+    salt = bcrypt.gensalt()
+    course_hash = bcrypt.hashpw(bytes, salt).decode('utf-8')
+    
+    course_id = self._storage.create_course(name, course_hash)
+    return course_id, base64.b64encode(f"{course_id}+{bytes.decode('utf-8')}".encode('utf-8'))
 
   def verify_app(self, auth_key: str) -> int:
     # mock_key = base64.b64encode("1+dGVzdF9jb3Vyc2U=".encode('utf-8'), altchars=b"()")
