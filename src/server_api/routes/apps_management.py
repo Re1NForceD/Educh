@@ -151,7 +151,7 @@ def app_remove_events():
 @ep_app_verified.route("/event_submissions", methods=["GET"])
 def app_get_event_submissions():
   logic: Logic = current_app.config['logic']  
-  submissions: dict[int, dict] = logic.get_event_submissions(g.course_id)
+  submissions: dict[int, list[int, str, dict]] = logic.get_event_submissions(g.course_id)
   return {"submissions": submissions}, 200
 
 

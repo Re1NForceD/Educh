@@ -118,35 +118,38 @@ class Course:
         ungraded += 1
     return ungraded
 
-  def colect_submission(self, event_submissions: dict): # {event_id: {user_id: {submission, result}}}
-    for event_id, submissions in event_submissions.items():
-      if not isinstance(event_id, int):
-        event_id = int(event_id)
+  def colect_submission(self, event_submissions: dict): # {submission_id: [event_id, user_id, submission}}
+    for submission_id, submission_data in event_submissions.items():
+      if not isinstance(submission_id, int):
+        submission_id = int(submission_id)
 
+      event_id = submission_data[0]
+      user_id = submission_data[1]
+      submission = submission_data[2]
       event: Event = self.get_event(event_id)
       if event is None:
         logger.warning(f"try to collect submissions but event not found: {event_id}")
         continue
       
-      event_submission: dict = self.submissions.get(event_id, None)
-      if event_submission is None:
+      event_submissions: dict = self.submissions.get(event_id, None)
+      if event_submissions is None:
         self.submissions[event_id] = {}
-        event_submission = self.submissions.get(event_id, None)
+        event_submissions = self.submissions.get(event_id, None)
       
-      for user_id, submission in submissions.items():
-        user: User = self.get_user(user_id)
-        if user is None: # or user != U_LEARNER:
-          logger.warning(f"try to submission for invalid user: {user} - {user.role if user is not None else E_INVALID}")
-          continue
-        
-        if user_id in event_submission:
-          logger.warning(f"update user {user_id} event submission")
+      # for user_id, submission in submissions.items():
+      user: User = self.get_user(user_id)
+      if user is None: # or user != U_LEARNER:
+        logger.warning(f"try to submission for invalid user: {user} - {user.role if user is not None else E_INVALID}")
+        continue
+      
+      if user_id in event_submissions:
+        logger.warning(f"update user {user_id} event submission")
 
-        event_submission[user_id] = submission
-        self.submissions_by_id[submission["id"]] = [event_id, user_id, submission]
+      event_submissions[user_id] = submission
+      self.submissions_by_id[submission_id] = submission_data
 
-        if submission.get("date", None) is None:
-          submission["date"] = datetime_to_str(datetime.datetime.now())
+      if submission.get("date", None) is None:
+        submission["date"] = datetime_to_str(datetime.datetime.now())
 
   def update_submission(self, submitter_id, submission_id, result):
     submission = self.submissions_by_id[submission_id][2]

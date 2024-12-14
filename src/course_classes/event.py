@@ -52,8 +52,8 @@ class Event():
 
 
 class ResourcesEvent(Event):
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, info: str, published: bool, details: dict):
-    super().__init__(id, name, start_time, info, published, details)
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, info: str, published: bool):
+    super().__init__(id, name, start_time, info, published)
     self.type = E_RESOURCES
 
   def from_dict_details(self, details: dict):
@@ -129,8 +129,8 @@ class TestEvent(Event):
 
 
 class AssignmentEvent(Event):
-  def __init__(self, id: int, name: str, start_time: datetime.datetime, info: str, published: bool, details: dict):
-    super().__init__(id, name, start_time, info, published, details)
+  def __init__(self, id: int, name: str, start_time: datetime.datetime, info: str, published: bool):
+    super().__init__(id, name, start_time, info, published)
     self.type = E_ASSIGNMENT
 
   def from_dict_details(self, details: dict):
@@ -142,13 +142,13 @@ class AssignmentEvent(Event):
 
 def get_event(id: int, type: int, name: str, start_time: datetime.datetime, info: str, published: bool = False, details: dict = None):
   if type == E_RESOURCES:
-    return ResourcesEvent(id, name, start_time, info, published, details)
+    return ResourcesEvent(id, name, start_time, info, published)
   elif type == E_CLASS:
     return ClassEvent(id, name, start_time, info, published, details)
   elif type == E_TEST:
     return TestEvent(id, name, start_time, info, published, details)
   elif type == E_ASSIGNMENT:
-    return AssignmentEvent(id, name, start_time, info, published, details)
+    return AssignmentEvent(id, name, start_time, info, published)
 
 
 def get_event_from_dict(data: dict):

@@ -829,6 +829,8 @@ async def modal_add_submission_callback(ack: Ack, context, body, client: WebClie
   if logic.course.submissions_by_id[submission_id][2].get("result", None) is not None:
     await client.chat_postMessage(channel=user_id, blocks=get_submission_message_blocks(logic, submission_id))
 
+  await update_home_view(logic.course.get_user(user_id), logic, client)
+
 async def handle_show_submissions_per_event(client: WebClient, ack: Ack, body, logger, context):
   await ack()
   logic: AppLogic = context["logic"]

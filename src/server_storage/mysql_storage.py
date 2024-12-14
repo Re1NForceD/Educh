@@ -229,21 +229,19 @@ class MySQLStorage(DataStorage):
       self.remove_event(cnx, course_id, event)
     cnx.commit()
   
-  def get_event_submissions(self, course_id: int):
+  def get_event_submissions(self, course_id: int) -> dict[int, list[int, str, dict]]:
     cnx = self.get_cnx()
-    submissions: dict[int, dict] = {}
-    for submission in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submission, ces.submitter_id, ces.result, ces.created_at from course_event_submission ces right join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
+    submissions: dict[int, list[int, str, dict]] = {}
+    for submission in self.exec_select(cnx, f"select ces.id, ces.event_id, ces.user_id, ces.submission, ces.submitter_id, ces.result, ces.created_at from course_event_submission ces left join course_event ce on ces.event_id = ce.id where ce.course_id={course_id}"):
       submission_id = submission[0]
       if submission_id is None:
-        logger.warning(f"got invalid submission row: {submission}")
+        logger.warning(f"got invalid submission row: {submission} for course {course_id}")
         continue
       
       event_id = submission[1]
       user_id = submission[2]
-      submission_d = {"id": submission_id, "submission": json.loads(decode_unicode_string(submission[3])), "submitter_id": submission[4], "result": submission[5], "date": datetime_to_str(submission[6])}
-      if submissions.get(event_id, None) is None:
-        submissions[event_id] = {}
-      submissions[event_id][user_id] = submission_d
+      submission_data = {"id": submission_id, "submission": json.loads(decode_unicode_string(submission[3])), "submitter_id": submission[4], "result": submission[5], "date": datetime_to_str(submission[6])}
+      submissions[submission_id] = [event_id, user_id, submission_data]
     return submissions
   
   def save_event_submission(self, course_id: int, event_id: int, user_id: str, submission: dict, submitter_id: str, result: int):

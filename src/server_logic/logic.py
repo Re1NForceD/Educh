@@ -64,7 +64,7 @@ class Logic:
   def remove_events(self, course_id: int, events: list[Event]):
     self._storage.remove_events(course_id, events)
 
-  def get_event_submissions(self, course_id: int):
+  def get_event_submissions(self, course_id: int) -> dict[int, list[int, str, dict]]:
     return self._storage.get_event_submissions(course_id)
 
   def post_event_submission(self, course: Course, event_id: int, user_id: str, submission: dict, submitter_id, result):

@@ -147,7 +147,7 @@ class AppLogic:
     r_data=r.json()
     submission_id = r_data["id"]
     if submission_id is not None:
-      self.course.colect_submission({event_id: {user_id: {"id": submission_id, "submission": submission, "submitter_id": submitter_id, "result": r_data["result"]}}})
+      self.course.colect_submission({submission_id: [event_id, user_id, {"id": submission_id, "submission": submission, "submitter_id": submitter_id, "result": r_data["result"]}]})
     return submission_id
 
   def grade_event_submission(self, submitter_id: str, submission_id: int, result: int):
