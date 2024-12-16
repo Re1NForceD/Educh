@@ -567,6 +567,8 @@ async def modal_take_test_callback(context, body, logger, client: WebClient, ack
       answers[hash] = {"var_hash":value["signle_test_ans"]["selected_option"]["value"]}
     elif "multi_test_ans" in value:
       answers[hash] = {"vars_hash": [opt["value"] for opt in value["multi_test_ans"]["selected_options"]]}
+      
+  await ack()
 
   submission_id = await handle_user_submission(logic, event_id, user_id, answers, client)
   if submission_id is None:
