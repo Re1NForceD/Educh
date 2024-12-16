@@ -18,7 +18,7 @@ class AppLogic:
     self.server_address = config["SERVER_ADDRESS"]
     self.__auth_key = config["AUTH_KEY"]
     self.__session_key = ""
-    self.course: Course = None
+    self.course: Course = Course(0, "init_course")
 
   def get_url(self, path):
     return f"{self.server_address}/{path}"
@@ -45,7 +45,7 @@ class AppLogic:
     r_data = r.json()
 
     self.__session_key = r_data["session_key"]
-    self.course = Course(data=r_data["course_data"])
+    self.course.from_dict(data=r_data["course_data"])
 
     logger.info(f"App verified. Course: {r_data['course_data']}")
 
@@ -79,7 +79,7 @@ class AppLogic:
       raise RuntimeError("can't update_users")
     
     r_data=r.json()
-    self.course = Course(data=r_data["course_data"])
+    self.course.from_dict(data=r_data["course_data"])
 
   def update_users_role(self, new_role: int, users: list[str]):
     for user_id in users:
@@ -110,7 +110,7 @@ class AppLogic:
       raise RuntimeError("can't update_events")
     
     r_data=r.json()
-    self.course = Course(data=r_data["course_data"])
+    self.course.from_dict(data=r_data["course_data"])
   
   def remove_events(self, events: list[Event]):
     r = self.send_req(func=requests.delete, path=ep_remove_events, json={"events": [event.to_dict() for event in events]})
@@ -118,7 +118,7 @@ class AppLogic:
       raise RuntimeError("can't remove_events")
     
     r_data=r.json()
-    self.course = Course(data=r_data["course_data"])
+    self.course.from_dict(data=r_data["course_data"])
 
   def start_course(self) -> bool:
     if self.course.started_at is not None:

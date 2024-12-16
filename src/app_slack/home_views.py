@@ -505,6 +505,7 @@ async def modal_add_users_callback(ack: Ack, context, body, client: WebClient):
     user: User = logic.course.get_user(user_id)
     if user is not None:
       await update_home_view(user, logic, client)
+    await client.chat_postMessage(channel=user.platform_id, text=f"You are a {user_roles_str[role]} now")
 
   await client.views_update(
       view_id=body["view"]["previous_view_id"],
@@ -525,6 +526,7 @@ async def handle_remove_user(client: WebClient, ack: Ack, body, logger, context)
         view_id=body["view"]["id"],
         view=get_manage_users_modal(logic)
     )
+    await client.chat_postMessage(channel=user.platform_id, text=f"You are a {user_roles_str[U_GUEST]} now")
 
 async def handle_edit_user(client: WebClient, ack: Ack, body, logger, context):
   await ack()
