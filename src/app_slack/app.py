@@ -32,10 +32,10 @@ class SlackApp:
     self.logic.start()
     
     if self.logic.course.channel_id is None:
-      created_channel = self.app.client.conversations_create(name=f"{self.logic.course.name}_Educh_Channel".lower(),
+      created_channel = await self.app.client.conversations_create(name=f"{self.logic.course.name}_Educh_Channel".lower(),
                                                              is_private=False)
       channel_id = created_channel["channel"]["id"]
-      self.app.client.conversations_setPurpose(channel=channel_id, purpose="Channel created by Educh App for learning!")
+      await self.app.client.conversations_setPurpose(channel=channel_id, purpose="Channel created by Educh App for learning!")
       self.logic.update_essensials(channel_id=channel_id)
 
     users_list = await self.app.client.users_list()
@@ -46,6 +46,8 @@ class SlackApp:
       user = User(platform_id=user_info["id"], name=user_info["profile"]["display_name_normalized"], role=(U_MASTER if user_info["is_primary_owner"] else U_GUEST))
       if self.logic.course.add_user(user):
         new_users.append(user)
+        if user.role == U_MASTER:
+          await self.app.client.chat_postMessage(channel=user.platform_id, text=f"Hi, <@{user.platform_id}>! You are the master of this course!")      
 
     if len(new_users) > 0:
       await self.app.client.conversations_invite(channel=self.logic.course.channel_id, users=[user.platform_id for user in new_users], force=True)
