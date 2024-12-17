@@ -24,7 +24,11 @@ class AppLogic:
     return f"{self.server_address}/{path}"
   
   def send_req(self, func, path, json=None):
-    r = func(url=self.get_url(path), json=json, headers={"Session-Key": self.__session_key})
+    r: requests.Response = func(url=self.get_url(path), json=json, headers={"Session-Key": self.__session_key})
+    try:
+      logger.info(f"Got response from {path}: {r.json()}")
+    except:
+      pass
     return r
 
   def start(self):

@@ -270,6 +270,6 @@ class MySQLStorage(DataStorage):
     if row[0] is None:
       self.exec_update(cnx, f"update course_event_submission set submitter_id='{submitter_id}', result={result} where id={submission_id}")
       cnx.commit()
-      return False
-    else:
       return True
+    else:
+      return False

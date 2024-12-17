@@ -198,7 +198,7 @@ def get_setup_event_modal_details_fields(event: Event) -> list:
   elif event.type == E_RESOURCES:
     return get_setup_event_modal_details_fields_resources()
   elif event.type == E_CLASS:
-    return get_setup_event_modal_details_fields_class()
+    return get_setup_event_modal_details_fields_class(event)
   elif event.type == E_TEST:
     return get_setup_event_modal_details_fields_test(event)
   elif event.type == E_ASSIGNMENT:
@@ -208,8 +208,8 @@ def get_setup_event_modal_details_fields_resources() -> list:
   return [
   ]
   
-def get_setup_event_modal_details_fields_class() -> list:
-  return [
+def get_setup_event_modal_details_fields_class(event: ClassEvent) -> list:
+  blocks = [
     {
       "type": "input",
       "block_id": "event_duration_select",
@@ -246,6 +246,14 @@ def get_setup_event_modal_details_fields_class() -> list:
       }
     },
   ]
+
+  if event.duration_m is not None:
+    blocks[0]["element"]["initial_value"] = f"{event.duration_m}"
+
+  if event.url is not None:
+    blocks[1]["element"]["initial_value"] = f"{event.url}"
+
+  return blocks
   
 def get_setup_event_modal_details_fields_test(event: TestEvent) -> list:
   blocks = [
