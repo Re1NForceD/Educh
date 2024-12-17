@@ -373,7 +373,7 @@ def get_users_list_blocks(logic: AppLogic, teachers: list[User], learners: list[
   return blocks
 
 def get_user_fields(user: User):
-  return [
+  blocks = [
     {
       "type": "section",
       "text": {
@@ -381,7 +381,10 @@ def get_user_fields(user: User):
         "text": f"*Username:* {user.name}, *Role:* {user_roles_str[user.role]}"
       }
     },
-    {
+  ]
+
+  if user.is_learner() or (user.is_teacher() and user.role != U_MASTER):
+    blocks.append({
       "type": "actions",
       "elements": [
         {
@@ -402,13 +405,17 @@ def get_user_fields(user: User):
           "style": "danger",
           "value": f"{user.platform_id}",
           "action_id": "click_remove_user"
-        },
+        }
       ]
-    },
+    })
+  
+  blocks.append(
     {
       "type": "divider",
-    },
-  ]
+    }
+  )
+  
+  return blocks
 
 async def handle_add_user(client: WebClient, ack: Ack, body, logger):
   await ack()
